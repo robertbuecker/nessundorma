@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+"""
+tbl2json
+Story table to JSON converter for Robot Operas. Unwinds dots in column names to JSON hierarchies,
+and evaluates JSON/Python-style dictionaries within cells.
+
+Additionally mangles data for random/relative/... motion, specifically for Putzini.
+Also it writes a file putzini.pdf illustrating Putzini's path.
+
+Usage: tbl2json.py [IN] [OUT]
+[IN] - csv or xlsx file, or link to Google Docs spreadsheet (without the final slash and anything after)
+[OUT] - output JSON file
+"""
+
+
 import pandas as pd
 import json
 from sys import argv, stderr
@@ -8,7 +22,7 @@ import re
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
-# TODO consider replacing the pandas dependency by csv (but I'm lazy)
+# TODO consider replacing the pandas dependency by csv (but I'm too lazy)
 if argv[1].endswith('xlsx'):
     df = pd.read_excel(argv[1]) 
 elif argv[1].endswith('csv'):
@@ -130,7 +144,16 @@ for st in steps.to_dict(orient='records'):
         raise NotImplementedError('todo.')
     
     else:
+        putz_pos.append(putz_pos[-1] if putz_pos else (None, None, None))
         steplist.append(st)
+
+fh, ax = plt.subplots(1,1)
+arca = plt.Circle((0, 0), 700, color='k', alpha=0.5)
+ax.add_artist(arca)
+putz_pos = np.array(putz_pos)
+ax.plot(putz_pos[:,0], putz_pos[:,1], ':o')
+plt.axis('equal')
+plt.savefig('putzini.pdf')
 
 final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
 final_steps.to_csv(argv[2].rsplit('.', 1)[0] + '_processed.csv', index=False)
