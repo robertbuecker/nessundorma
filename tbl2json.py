@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 tbl2json
 Story table to JSON converter for Robot Operas. Unwinds dots in column names to JSON hierarchies,
