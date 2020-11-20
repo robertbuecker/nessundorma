@@ -69,91 +69,107 @@ def expand_nested(dict_in):
 # DataFrame of all steps
 steps = df.dropna(axis=0, how='all').reset_index(drop=True)
 
-# now iterate through steps manually as dict (tuple would not help here), to apply mods where required
-steplist = []
-
-#TODO extend this into a full state vector?
-putz_pos = []
-
 def parse_command(fun, npar, com):
+    # parses command com of form fun(par, par, par,.....) with npar parameters, all integer.
+    # Returns a tuple.
     parsed = re.search(fun+'\(' + '\s*,\s*'.join(npar*['([\d +-]+)']) + '\)', com)
     return None if parsed is None else tuple(int(p) for p in parsed.groups())
 
+# now iterate through steps manually as dict (tuple would not help here), to apply mods where required
+steplist = []
 for st in steps.to_dict(orient='records'):
     #TODO writing this as Spaghetti. Refactor one fine day.
 
-    # PUTZINI ---
+    skip_append = False # do not append step to final version at the end of iteration?
+    stepname = st['name']
+    log = lambda msg: print(f'In step {stepname}: {msg}', file=stderr)
+
+    # PUTZINI VALIDATION ---
     pm = str(st['parameter.putzini.move'])
+    pm_prev = steplist[-1]['parameter.putzini.move'] if steplist else None
 
     if pm.startswith('moveToPos'):
         # just intercept to update current position and validate expression
         pp = parse_command('moveToPos', 3, pm)
         if pp is None:
-            print(f'Non-compliant command in step {st["name"]}: {pm}', file=stderr)
-        else:
-            putz_pos.append(pp)
-                            
-        steplist.append(st)
-        
-    elif pm.startswith('moveRandomXY'):
+            log(f'Non-compliant command: {pm}')
+            
+    elif pm.startswith('moveToAngle'):
+        # just intercept to update current position and validate expression
+        pp = parse_command('moveToAngle', 2, pm)
+        if pp is None:
+            log(f'Non-compliant command: {pm}')
+    
+    elif pm.startswith('moveByPos'):
+        pp = parse_command('moveByPos', 3, pm)
+        if pp is None:
+            log(f'Non-compliant command: {pm}')
+
+    elif pm.startswith('moveByAngle'):
+        pp = parse_command('moveByAngle', 2, pm)
+        if pp is None:
+            log(f'Non-compliant command: {pm}')
+            
+    elif pm.startswith('lookAtArka'):
+        # TODO in software?
+        pp = parse_command('lookAtArka', 0, pm)
+        if pp is None:
+            log(f'Non-compliant command: {pm}')
+            
+    elif pm.startswith('moveRandom'):
         # unroll random motion into additional steps
         try:
-            n_steps, xmin, xmax, ymin, ymax = parse_command('moveRandomXY', 5, pm)
-            
+            n_steps, xmin, xmax, ymin, ymax = parse_command('moveRandom', 5, pm)
         except Exception as err:
-            print(f'Non-compliant command in step {st["name"]}: {pm}', file=stderr)
-            print(str(err), file=stderr)
-            steplist.append(st)
-            continue
-        
-        for ii in range(n_steps):
-            x = np.random.randint(xmin, xmax)
-            y = np.random.randint(ymin, ymax)
-            if ii == 0:
-                rand_step = deepcopy(st) # don't mess with the iterator
-            else:
-                # for the extra steps we don't want the other parameters to repeat
-                rand_step = {k: None for k in st.keys()}
-            rand_step['name'] = st['name'] + f'_{ii:03d}'
-            alpha = 0
-            #TODO the angle here is nonsensical until there is a moveToPosXY command
-            rand_step['parameter.putzini.move'] = f'moveToPos({x},{y},{alpha})'
-            #TODO here the delta duration will still screw things up -> refactor into preprocessor?
-            rand_step['duration'] = st['duration']/n_steps
-            putz_pos.append((x, y, alpha))
-            steplist.append(rand_step)
-    
-    elif pm.startswith('moveBy'):
-        #TODO the angle issue (discuss with Sebastian)
-        pp = parse_command('moveBy', 3, pm)
-        if pp is None:
-            print(f'Non-compliant command in step {st["name"]}: {pm}', file=stderr)
-            steplist.append(st)
-        else:
-            new_pos = tuple(curr + off for curr, off in zip(putz_pos[-1], pp))
-            st_rel = deepcopy(st)
-            st_rel['parameter.putzini.move'] = f'moveToPos({new_pos[0]},{new_pos[1]},{new_pos[2]})'
-            putz_pos.append(new_pos)
-            steplist.append(st_rel)
+            log(f'Non-compliant command: {pm}')
+
+        if (pm_prev != 'moveToPos') \
+            or steplist[-1]['terminationCondition'] not in ['WaitForArka', 'WaitForPutzini']:
+            log(f'Random Putzini move requires defined position in previous step. Omitting random move.')
                 
-    elif pm.startswith('moveToPosXY'):
-        # move only XY, keeping the final alpha. If this is not possible directly, it could
-        # simply compute the final alpha from the arctan of the previous points and convert
-        # the call to moveToPos
-        # OR: maybe better alternative... catch above if moveToPos is called with 2 (XY) or 1 (alpha) args only
-        raise NotImplementedError('todo.')
+        elif True: # unroll random move in pre-processing?
+            # TODO this needs more work.
+            prev_pos = parse_command('moveToPos', 3, pm_prev)
+            skip_append = True # we have to append the random steps manually
+            
+            for ii in range(n_steps):
+                x = np.random.randint(xmin, xmax)
+                y = np.random.randint(ymin, ymax)
+                speed = np.random.randint(0, 100)
+                if ii == 0:
+                    rand_step = deepcopy(st) # don't mess with the iterator
+                else:
+                    # for the extra steps we don't want the other parameters to repeat
+                    rand_step = {k: None for k in st.keys()}
+                rand_step['name'] = stepname + f'_{ii:03d}'
+                #TODO the angle here is nonsensical until there is a moveToPosXY command
+                rand_step['parameter.putzini.move'] = f'moveToPos({x},{y},{speed})'
+                #TODO here the delta duration will still screw things up -> refactor into preprocessor?
+                rand_step['duration'] = st['duration']/n_steps
+                steplist.append(rand_step)
+                
+    elif pm == 'nan':
+        pass
     
     else:
-        putz_pos.append(putz_pos[-1] if putz_pos else (None, None, None))
+        log(f'Unknown Putzini move command: {pm}')
+        
+    # ARKA VALIDATION ---
+    # works a bit different from Putzini, as Arka has its paramters as hierarchy
+    arka_par = {k.split('parameter.arka.', 1)[-1]: v for k, v in st.items() if k.startswith('parameter.arka')}
+    arka_par = expand_nested(arka_par)
+    print(f'found arka parameters: {arka_par}')
+    
+    if not skip_append:
         steplist.append(st)
 
-fh, ax = plt.subplots(1,1)
-arca = plt.Circle((0, 0), 700, color='k', alpha=0.5)
-ax.add_artist(arca)
-putz_pos = np.array(putz_pos)
-ax.plot(putz_pos[:,0], putz_pos[:,1], ':o')
-plt.axis('equal')
-plt.savefig('putzini.pdf')
+if False:
+    fh, ax = plt.subplots(1,1)
+    arka = plt.Circle((0, 0), 700, color='k', alpha=0.5)
+    ax.add_artist(arka)
+    ax.plot(putz_pos[:,0], putz_pos[:,1], ':o')
+    plt.axis('equal')
+    plt.savefig('putzini.pdf')
 
 final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
 final_steps.to_csv(argv[2].rsplit('.', 1)[0] + '_processed.csv', index=False)
