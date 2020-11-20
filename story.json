@@ -3,7 +3,7 @@
     {
       "name": "Beispiel 1",
       "comment": "BeiSpiel ",
-      "terminationCondition": "RandomDuration",
+      "terminationCondition": "RandomDuration, WaitForArka, WaitForPutzini, WaitForBoth, Duaration",
       "duration": 30.0,
       "deltaDuration": 20.0,
       "parameter": {
@@ -13,16 +13,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "moveToPos(x und y in mm, bezeichnen den Ankunftsort ab mitte arka,alpha ab Blick in 0-Richtung arka (zur T\u00fcr)) ",
-          "head": "0, 90, 135 bzw. unten, mitte, oben ",
+          "move": "moveToPos(x und y in mm, bezeichnen den Ankunftsort ab mitte arka, Geschwindigkeit in %) ODER moveToAngle(alpha ab Blick in 0-Richtung arka (zur T\u00fcr), Geschwindigkeit in %) ODER\nmoveByPos(x,y in mm bezogen auf aktuellen Ort, Geschwindigkeit in %) ODER \nmoveByAngle(alpha bezogen auf aktuellen Ort, Geschwindigkeit in %) ODER\nmoveRandom(xMin, xMax, yMin, yMax, Geschwindigkeit in %, Putzen in 1 oder 0) ODER\nlookAtArka",
+          "height": "0=unten\n100=oben",
+          "head": "0, 90, 135",
           "audio": "filename",
           "lamp": "NO_DICT: {\"r\":120, \"g\": 255 (max), \"b\": 0 (min)..., \"w\": , \"blinken\": 0}"
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 1",
@@ -38,15 +39,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": "Kassette startet (45 Min)",
-      "overall light": "Spot auf Arka",
-      "beamer commentar": null
+      "overallAudio": "Kassette startet (45 Min)",
+      "overallLight": "Spot auf Arka",
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 2",
@@ -62,15 +64,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 3",
@@ -86,15 +89,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 4",
@@ -115,15 +119,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 5 ",
@@ -139,15 +144,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 6 ",
@@ -168,15 +174,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 7",
@@ -192,15 +199,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 8",
@@ -221,15 +229,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 1 step 9",
@@ -245,15 +254,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "LOOP 1 WIRD 3 MAL SO WIEDERHOLT, DANN LOOP 2 BIS ENDE KASSETTE",
@@ -269,15 +279,41 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Loop step 0",
+      "comment": "Putzin geht auf Position ",
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveToPos(3450,3275, 50)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 1",
@@ -292,8 +328,9 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "moveRandomXY(10,-300,300,120, 2004)",
-          "head": "unten",
+          "move": "moveRandom(70,3450,-3275,3275,50,1)",
+          "height": "75",
+          "head": "0",
           "audio": null,
           "lamp": {
             "r": 150,
@@ -304,9 +341,9 @@
         },
         "beamer": null
       },
-      "overall audio": "Kassette l\u00e4uft noch ",
-      "overall light": "langsam etwas Raumlicht dazu ",
-      "beamer commentar": null
+      "overallAudio": "Kassette l\u00e4uft noch ",
+      "overallLight": "langsam etwas Raumlicht dazu ",
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 2",
@@ -321,16 +358,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "moveRandomXY(PUTZEN)",
+          "move": null,
+          "height": "25",
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 3",
@@ -345,16 +383,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "egal wo er ist: zurPlattformDrehenPutzini",
-          "head": null,
+          "move": "lookAtArka()",
+          "height": "75",
+          "head": "135",
           "audio": null,
           "lamp": null
         },
-        "beamer": "ab hier Text #ART_KUKA "
+        "beamer": "Text #ART_KUKA "
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": "Befehl f\u00fcr Beamer eine neue Zeile alle 10 sek?"
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": "Befehl f\u00fcr Beamer eine neue Zeile alle 10 sek?"
     },
     {
       "name": "Loop 2 step 4",
@@ -375,15 +414,16 @@
         },
         "putzini": {
           "move": null,
-          "head": "mitte",
+          "height": null,
+          "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 5 ",
@@ -399,15 +439,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 6 ",
@@ -428,15 +469,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 7",
@@ -452,22 +494,23 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 8",
       "comment": "arka draws",
-      "terminationCondition": "Duration",
-      "duration": 15.0,
-      "deltaDuration": 5.0,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
       "parameter": {
         "arka": {
           "speed": 15.0,
@@ -480,16 +523,17 @@
           }
         },
         "putzini": {
-          "move": null,
-          "head": null,
+          "move": "moveToPos(3450,3275, 30)",
+          "height": null,
+          "head": "90",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Loop 2 step 9",
@@ -504,16 +548,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "RandomMovePutzini PUTZEN",
-          "head": "unten",
+          "move": "moveRandom(70,3450,-3275,3275,50,1)",
+          "height": "25",
+          "head": "90",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "NAHTLOSER \u00dcBERGANG",
@@ -529,15 +574,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 1",
@@ -552,16 +598,42 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "RandomMovePutzini (PUTZEN)",
-          "head": "unten",
+          "move": null,
+          "height": null,
+          "head": "0",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": "Kassette start",
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": "Kassette start",
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 1.2",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveToPos(70,1700,60)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 2",
@@ -576,16 +648,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "RandomMovePutzini (PUTZEN) - 1 m um Plattform",
+          "move": "moveRandom(70,1700,-1700,1700,50,1)",
+          "height": "50",
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 3",
@@ -600,16 +673,17 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": "zurPlattformDrehenPutzini",
-          "head": null,
+          "move": "lookAtArka()",
+          "height": null,
+          "head": "90",
           "audio": null,
           "lamp": null
         },
-        "beamer": "Text #ART_KUKA nochmal? "
+        "beamer": "Text #ART_KUKA"
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 4",
@@ -630,15 +704,16 @@
         },
         "putzini": {
           "move": null,
-          "head": "mitte",
+          "height": null,
+          "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 5 ",
@@ -654,15 +729,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 6 ",
@@ -682,16 +758,17 @@
           }
         },
         "putzini": {
-          "move": "moveToPos(1200,0,180)",
+          "move": "moveToPos(1200,0,70)",
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 7",
@@ -707,15 +784,16 @@
         },
         "putzini": {
           "move": null,
-          "head": "oben",
+          "height": null,
+          "head": "135",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 8",
@@ -736,15 +814,16 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
       "name": "Phase I step 9",
@@ -760,20 +839,21 @@
         },
         "putzini": {
           "move": null,
-          "head": "unten",
+          "height": null,
+          "head": "0",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
+      "name": "Phase I step 10",
       "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
+      "terminationCondition": "WaitForPutzini",
       "duration": null,
       "deltaDuration": null,
       "parameter": {
@@ -784,189 +864,322 @@
         },
         "putzini": {
           "move": null,
-          "head": "oben",
+          "height": null,
+          "head": "135",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": null,
-          "head": "unten",
-          "audio": null,
-          "lamp": null
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(1200,0,360)",
-          "head": "mitte",
-          "audio": "Sound Freude",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 1} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(1200,0,180)",
-          "head": "oben",
-          "audio": "Sound off",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 0} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(1200,0,360)",
-          "head": "mitte",
-          "audio": "Sound Freude",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 1} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(1200,0,180)",
-          "head": "oben",
-          "audio": "Sound off",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 0} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(1200,0,360)",
-          "head": "mitte",
-          "audio": "Sound Freude",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 1} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
-      "comment": null,
-      "terminationCondition": "WaitForPutzini +1 sec",
-      "duration": null,
-      "deltaDuration": null,
-      "parameter": {
-        "arka": {
-          "speed": null,
-          "sequencerType": null,
-          "sequencerParams": null
-        },
-        "putzini": {
-          "move": "moveToPos(800,0,180)",
-          "head": "oben",
-          "audio": "Sound off",
-          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 0} "
-        },
-        "beamer": null
-      },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
-    },
-    {
-      "name": null,
+      "name": "Phase I step 11",
       "comment": null,
       "terminationCondition": "Duration",
-      "duration": 1.0,
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 12",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": "0",
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 13",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 14",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveByAngle(180,70)",
+          "height": null,
+          "head": "90",
+          "audio": "SoundFreude",
+          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 1} "
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 15",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 16",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveByAngle(180,70)",
+          "height": null,
+          "head": "135",
+          "audio": "SoundOff",
+          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 0} "
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 17",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 18",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveByAngle(180,70)",
+          "height": null,
+          "head": "90",
+          "audio": "SoundFreude",
+          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 1} "
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 19",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 20",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveByAngle(180,70)",
+          "height": null,
+          "head": "135",
+          "audio": "SoundOff",
+          "lamp": "{\"r\":150, \"g\":150, \"b\":150, \"w\":150, \"blinken\": 0} "
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 21",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 22",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveToPos(800,0,30)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 23",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2.0,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -976,20 +1189,21 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
+      "name": "Phase I step 24",
       "comment": null,
-      "terminationCondition": "WaitForPutzini",
+      "terminationCondition": "WaitForBoth",
       "duration": null,
       "deltaDuration": null,
       "parameter": {
@@ -1000,18 +1214,19 @@
         },
         "putzini": {
           "move": "moveToPos(1200,0,45)",
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
+      "name": "Phase I step 25",
       "comment": null,
       "terminationCondition": "WaitForArka",
       "duration": null,
@@ -1024,18 +1239,19 @@
         },
         "putzini": {
           "move": null,
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": "Musik aus",
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": "Musik aus",
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
+      "name": "Phase I step 26",
       "comment": null,
       "terminationCondition": "WaitForPutzini",
       "duration": null,
@@ -1052,19 +1268,20 @@
           }
         },
         "putzini": {
-          "move": "moveToPos(3400,-3200,-90)",
-          "head": "unten",
+          "move": "moveByAngle(135,50)",
+          "height": null,
+          "head": "0",
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     },
     {
-      "name": null,
+      "name": "Phase I step 27",
       "comment": null,
       "terminationCondition": "WaitForPutzini",
       "duration": null,
@@ -1076,16 +1293,42 @@
           "sequencerParams": null
         },
         "putzini": {
-          "move": null,
+          "move": "moveToPos(3400,-3200,50)",
+          "height": null,
           "head": null,
           "audio": null,
           "lamp": null
         },
         "beamer": null
       },
-      "overall audio": null,
-      "overall light": null,
-      "beamer commentar": null
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
+    },
+    {
+      "name": "Phase I step 28",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveToAngle(-90,20)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null
+        },
+        "beamer": null
+      },
+      "overallAudio": null,
+      "overallLight": null,
+      "beamerComment": null
     }
   ]
 }
