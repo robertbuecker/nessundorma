@@ -66,16 +66,20 @@ def expand_nested(dict_in):
     
     return dict_out
 
-# DataFrame of all steps
-steps = df.dropna(axis=0, how='all').reset_index(drop=True)
-
 def parse_command(fun, npar, com):
     # parses command com of form fun(par, par, par,.....) with npar parameters, all integer.
     # Returns a tuple.
     parsed = re.search(fun+'\(' + '\s*,\s*'.join(npar*['([\d +-]+)']) + '\)', com)
     return None if parsed is None else tuple(int(p) for p in parsed.groups())
 
-# now iterate through steps manually as dict (tuple would not help here), to apply mods where required
+def arka_validate(arka_par):
+    # arka_par is a nested dict of all parameters below parameter.arka
+    # return True if all is good.
+    return True
+
+# now iterate through steps manually as dict (tuple would not help here), to validate and mod where required
+# DataFrame of all steps
+steps = df.dropna(axis=0, how='all').reset_index(drop=True)
 steplist = []
 for st in steps.to_dict(orient='records'):
     #TODO writing this as Spaghetti. Refactor one fine day.
@@ -119,7 +123,7 @@ for st in steps.to_dict(orient='records'):
     elif pm.startswith('moveRandom'):
         # unroll random motion into additional steps
         try:
-            n_steps, xmin, xmax, ymin, ymax = parse_command('moveRandom', 5, pm)
+            xmin, xmax, ymin, ymax, speed, putzen = parse_command('moveRandom', 6, pm)
         except Exception as err:
             log(f'Non-compliant command: {pm}')
 
@@ -132,10 +136,11 @@ for st in steps.to_dict(orient='records'):
             prev_pos = parse_command('moveToPos', 3, pm_prev)
             skip_append = True # we have to append the random steps manually
             
+            sfac = 1 # TODO TO BE FOUND EMPIRICALLY
+            n_steps = sfac * st['duration'] * speed
             for ii in range(n_steps):
                 x = np.random.randint(xmin, xmax)
                 y = np.random.randint(ymin, ymax)
-                speed = np.random.randint(0, 100)
                 if ii == 0:
                     rand_step = deepcopy(st) # don't mess with the iterator
                 else:
@@ -155,10 +160,28 @@ for st in steps.to_dict(orient='records'):
         log(f'Unknown Putzini move command: {pm}')
         
     # ARKA VALIDATION ---
-    # works a bit different from Putzini, as Arka has its paramters as hierarchy
-    arka_par = {k.split('parameter.arka.', 1)[-1]: v for k, v in st.items() if k.startswith('parameter.arka')}
-    arka_par = expand_nested(arka_par)
-    print(f'found arka parameters: {arka_par}')
+    # works a bit different from Putzini, as Arka has its paramters as hierarchy.
+    # does not quite work yet, unfortunately, as it's tricky to reconstruct a full
+    # state vector of Arka from the table.
+    
+    if False:
+    # fill in a complete set of arka parameters...
+        arka_par = {}
+        for k in [k for k in steps.columns if k.startswith('parameter.arka')]:
+            if (k in st) and pd.notna(st[k]) and (st[k] is not None):
+                arka_par[k] = st[k]
+            else:
+                for st_prev in reversed(steplist):
+                    if (k in st_prev) and pd.notna(st_prev[k]) and (st_prev[k] is not None):
+                        arka_par = st[k]
+                        break
+                else:
+                    arka_par[k] = None
+
+        arka_par = expand_nested(arka_par)
+        
+        if not arka_validate(arka_par):
+            log(f'Invalid arka parameters: {arka_par}')
     
     if not skip_append:
         steplist.append(st)
