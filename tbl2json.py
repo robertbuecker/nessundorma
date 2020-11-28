@@ -65,7 +65,7 @@ def expand_nested(dict_in):
             val = None if pd.isna(v) else v
 
         if isinstance(val, float) and val.is_integer:
-            print('Converting float', k)
+            # print('Converting float', k)
             val = int(round(val))
                 
         d_cur[kk] = val
