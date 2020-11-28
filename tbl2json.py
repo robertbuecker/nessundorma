@@ -53,16 +53,22 @@ def expand_nested(dict_in):
             # detect and evaluate dictionaries in cell
             
             try:
-                d_cur[kk] = eval(v)
+                val = eval(v)
             except SyntaxError:
                 print(v, f'in step {dict_in["name"]}, column {k}: is not a dict', file=stderr)
-                d_cur[kk] = f'NO_DICT: ' + v
+                val = f'NO_DICT: ' + v
             except Exception as e:
                 print(v, f'in step {dict_in["name"]}, column {k}: did not evaluate', file=stderr)
-                d_cur[kk] = f'NOT_EVAL: ' + v
+                val = f'NOT_EVAL: ' + v
                       
         else:
-            d_cur[kk] = v if pd.notna(v) else None
+            val = None if pd.isna(v) else v
+
+        if isinstance(val, float) and val.is_integer:
+            print('Converting float', k)
+            val = int(round(val))
+                
+        d_cur[kk] = val
     
     return dict_out
 
