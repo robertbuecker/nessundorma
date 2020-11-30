@@ -83,7 +83,7 @@ def on_message(client, userdata, message):
             
         except Exception as err:
             print(f'Failed to interpret payload')
-            step_name = f'FAILED TO INTERPRET MESSAGE'
+            step_name = f'MALFORMED MESSAGE'
             
         waiting_for = step_name if step_name else 'unlabeled'
         print('Waiting in:', waiting_for)
