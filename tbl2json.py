@@ -137,12 +137,16 @@ for st in steps.to_dict(orient='records'):
         except Exception as err:
             log(f'Non-compliant command: {pm}')
 
-        pp_prev = parse_command('moveToPos', 3, pm_prev)
 
-        if (pp_prev is None) or (steplist[-1]['terminationCondition'] not in ['WaitForArka', 'WaitForPutzini']):
-            log(f'Random Putzini move requires defined position in previous step. Omitting random move.')
                 
-        elif False: # unroll random move in pre-processing?
+        if False: # unroll random move in pre-processing?
+            
+            pp_prev = parse_command('moveToPos', 3, pm_prev)
+
+            if (pp_prev is None) or (steplist[-1]['terminationCondition'] not in ['WaitForArka', 'WaitForPutzini']):
+                log(f'Random Putzini move requires defined position in previous step. Omitting random move.')  
+                continue 
+                     
             # TODO this needs more work.
             prev_pos = parse_command('moveToPos', 3, pm_prev)
             skip_append = True # we have to append the random steps manually
