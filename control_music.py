@@ -83,10 +83,10 @@ def on_message(client, userdata, message):
             
         except Exception as err:
             print(f'Failed to interpret payload')
-            step_name = f'FAILED TO INTERPRET MESSAGE: {message.payload}'
+            step_name = f'FAILED TO INTERPRET MESSAGE\'
             
         waiting_for = step_name if step_name else 'unlabeled'
-        # print('Waiting in:', msg['WaitForMusic'])
+        print('Waiting in:', waiting_for)
 
 client = mqtt.Client()
 client.on_message = on_message
