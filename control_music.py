@@ -24,13 +24,12 @@ else:
 if use_audacity:
     def play(start=0):
         aud.write('Stop')
-        time.sleep(0.1)
         if start == 0:
             aud.write('CursProjectStart')
         else:
             startstr = f'{start}'.replace('.', ',') # REMOVE FOR ENGLISH AUDACITY
             aud.write(f'SelectTime: Start={startstr} End={startstr} RelativeTo=ProjectStart')
-        time.sleep(0.1)
+        # time.sleep(0.1)
         aud.write('Play')
         return time.time() - start
     def stop():
@@ -79,8 +78,9 @@ def on_message(client, userdata, message):
     global waiting_for
     if 'WaitForMusic' in message.payload.decode():
         msg = json.loads(message.payload.decode())
-        waiting_for = msg['WaitForMusic']
-        print('Waiting in:', msg['WaitForMusic'])
+        step_name = msg['WaitForMusic']
+        waiting_for = step_name if step_name else 'unlabeled'
+        # print('Waiting in:', msg['WaitForMusic'])
 
 client = mqtt.Client()
 client.on_message = on_message
