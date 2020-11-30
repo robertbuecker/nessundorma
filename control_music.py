@@ -77,8 +77,14 @@ waiting_for = False
 def on_message(client, userdata, message):
     global waiting_for
     if 'WaitForMusic' in message.payload.decode():
-        msg = json.loads(message.payload.decode())
-        step_name = msg['WaitForMusic']
+        try:
+            msg = json.loads(message.payload.decode())
+            step_name = msg['WaitForMusic']
+            
+        except Exception as err:
+            print(f'Failed to interpret payload')
+            step_name = f'FAILED TO INTERPRET MESSAGE: {message.payload}'
+            
         waiting_for = step_name if step_name else 'unlabeled'
         # print('Waiting in:', msg['WaitForMusic'])
 
@@ -104,7 +110,7 @@ try:
         # Any missing Triggers?
         if (len(qt) > 0) and waiting_for:
             comm = qt.pop(0)
-            print(f'{ela:.1f} WARNING: Skipping step {wait_lbl} due to already received trigger {comm}')
+            print(f'{ela:.1f} WARNING: Skipping step {waiting_for} due to already received trigger {comm}')
             last_msg = client.publish('music/state', json.dumps({'action': 'Trigger'}))
             waiting_for = ''
             time.sleep(0.05)
@@ -114,7 +120,7 @@ try:
             if event.trigger:
                 if waiting_for:
                     msg['action'] = 'Trigger'
-                    print(f'Sending trigger {event.comment} to finish step {waiting_for}.')
+                    print(f'{ela:.1f} Sending trigger {event.comment} to finish step {waiting_for}.')
                     waiting_for = ''
                     
                 else:
