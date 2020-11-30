@@ -1,5 +1,10 @@
+*.aup
+*.au
+opera_data
+*.csv
+*.json
+*.wav
+*.mp3
+*-checkpoint.ipynb
+*-checkpoint.py
 .ipynb_checkpoints
-.vscode
-story.json
-story_processed.csv
-putzini.pdf

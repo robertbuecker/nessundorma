@@ -60,9 +60,13 @@ def expand_nested(dict_in):
             except Exception as e:
                 print(v, f'in step {dict_in["name"]}, column {k}: did not evaluate', file=stderr)
                 val = f'NOT_EVAL: ' + v
-                      
+        
+        elif isinstance(v, str) and v.isspace():
+            v = None
+        
         else:
             val = None if pd.isna(v) else v
+            #TODO CATCH BLANKS
 
         if isinstance(val, float) and val.is_integer:
             # print('Converting float', k)
