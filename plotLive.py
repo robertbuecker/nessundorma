@@ -169,6 +169,13 @@ _mos = np.asarray([
     [-0.5, -0.25],
     [0.5, 0.25]
 ])
+_mos = np.asarray([
+    [0, -0.5],
+    [0.5, 0.25],
+    [0, 0],
+    [-0.5, 0.25],
+    [0, -0.5]
+])
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
 tilt_fig = False
@@ -218,12 +225,12 @@ class MainWindow(pg.GraphicsLayoutWidget):
     @QtCore.pyqtSlot(str)
     def on_messageSignal(self, msg):
         RT_in = eval('np.' + msg)
-        RT_in = np.dot(np.diag([1,-1,-1,1]), RT_in)
+        # RT_in = np.dot(np.diag([1,-1,-1,1]), RT_in)
         # angles = Rotation.from_dcm(RT_in[:3, :3]).as_euler('XYZ')
         # R0 = Rotation.from_euler('XYZ', angles*np.array([0,0,1])).as_dcm()
         # RT_in[:3,:3] = R0
-        RT = np.linalg.inv(RT_in)
-        # RT = RT_in
+        # RT = np.linalg.inv(RT_in)
+        RT = RT_in
         if (self.last_RT is None) or (self.last_RT != RT).any():
             self.last_RT = RT
             T = RT[:3,-1]
@@ -233,10 +240,10 @@ class MainWindow(pg.GraphicsLayoutWidget):
             angle_rot = tr.rotate(-angles[2]*180/np.pi + 180)
             my_rotated_symbol = angle_rot.map(my_symbol)
             col = pg.hsvColor((angles[2]+np.pi)/np.pi/2)
+            self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 'symbol': my_rotated_symbol, 'size': 10}])
             self.current_point.clear()
             self.current_point.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 
                                         'symbol': my_rotated_symbol, 'size': 30}])
-            self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 'symbol': my_rotated_symbol, 'size': 10}])
             print(f'New position: {T}, angles (Euler XYZ, deg): {angles*180/np.pi}')
             
             if tilt_fig:
