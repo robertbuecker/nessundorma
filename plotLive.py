@@ -171,7 +171,7 @@ _mos = np.asarray([
 ])
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
-tilt_fig = True
+tilt_fig = False
 
 class MainWindow(pg.GraphicsLayoutWidget):
     def __init__(self):
@@ -219,9 +219,9 @@ class MainWindow(pg.GraphicsLayoutWidget):
     def on_messageSignal(self, msg):
         RT_in = eval('np.' + msg)
         RT_in = np.dot(np.diag([1,-1,-1,1]), RT_in)
-        angles = Rotation.from_dcm(RT_in[:3, :3]).as_euler('XYZ')
-        R0 = Rotation.from_euler('XYZ', angles*np.array([0,0,1])).as_dcm()
-        RT_in[:3,:3] = R0
+        # angles = Rotation.from_dcm(RT_in[:3, :3]).as_euler('XYZ')
+        # R0 = Rotation.from_euler('XYZ', angles*np.array([0,0,1])).as_dcm()
+        # RT_in[:3,:3] = R0
         RT = np.linalg.inv(RT_in)
         # RT = RT_in
         if (self.last_RT is None) or (self.last_RT != RT).any():
