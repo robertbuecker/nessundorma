@@ -191,7 +191,7 @@ class MainWindow(QtGui.QWidget):
         self.setLayout(self.top_layout)
         self.top_layout.addWidget(self.plot_widget)
         
-        self.resize(500*(1+int(tilt_fig)),500)
+        self.resize(850*(1+int(tilt_fig)),700)
         self.setWindowTitle('Putzini')
 
         self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
@@ -216,6 +216,10 @@ class MainWindow(QtGui.QWidget):
                
         def haveacolor(ctrl):
             print(ctrl.color().getRgb())
+        
+        self.update_graph = QtGui.QCheckBox('Update Graph')
+        self.update_graph.setChecked(True)
+        self.control_layout.addRow(self.update_graph)
         
         move_command = QtGui.QLineEdit('stop()')
         move_command.returnPressed.connect(lambda: self.command('move', move_command.text()))
@@ -272,7 +276,19 @@ class MainWindow(QtGui.QWidget):
         color_bg.sigColorChanging.connect(lambda ctrl: self.command('lamp',
             {'back': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue()}}))
         self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
-        
+                 
+        self.xpos_indicator = QtGui.QLineEdit(readOnly=True)
+        self.control_layout.addRow(QtGui.QLabel('X Position'), self.xpos_indicator)
+                 
+        self.ypos_indicator = QtGui.QLineEdit(readOnly=True)
+        self.control_layout.addRow(QtGui.QLabel('Y Position'), self.ypos_indicator)
+                 
+        self.angle_indicator = QtGui.QLineEdit(readOnly=True)
+        self.control_layout.addRow(QtGui.QLabel('Angle'), self.angle_indicator)
+                          
+        self.battery_indicator = QtGui.QLineEdit(readOnly=True)
+        self.control_layout.addRow(QtGui.QLabel('Bat Volt'), self.battery_indicator)
+                               
         self.control_layout.setSizeConstraint(self.control_layout.SetFixedSize)
         # self.control_layout.SetMaximumSize(100,1000)
         # self.control_layout.resize(100, self.control_layout.width())
@@ -318,29 +334,37 @@ class MainWindow(QtGui.QWidget):
         # RT[:2,:2] = np.dot([[0, 1], [-1, 0]], RT[:2,:2])
         
         if (self.last_RT is None) or (self.last_RT != RT).any():
+            
             self.last_RT = RT
             T = RT[:3,-1]
-            angles = Rotation.from_dcm(RT[:3,:3]).as_euler('ZYX')
-            inplane = angles[0]
-            # print(pg.hsvColor(angles[2]/np.pi).getRgb())
-            tr = QtGui.QTransform()
-            angle_rot = tr.rotate(-inplane*180/np.pi + 180)
-            my_rotated_symbol = angle_rot.map(my_symbol)
-            col = pg.hsvColor((inplane+np.pi)/np.pi/2)
-            self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
-                                        'symbol': my_rotated_symbol, 'size': 10}])
-            self.current_point.clear()
-            self.current_point.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 
-                                        'symbol': my_rotated_symbol, 'size': 30}])
+            angles = (Rotation.from_dcm(RT[:3,:3]).as_euler('ZYX')*180/np.pi).round(1)
+        
+            self.xpos_indicator.setText(f'{T[0]*100:.0f} cm')
+            self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
+            self.angle_indicator.setText(f'{angles[0]},{angles[1]},{angles[2]}')
+            
+            
             with np.printoptions(precision=2, suppress=True):
                 print(f'New position: {T}, angles (Euler ZYX, deg): {(angles*180/np.pi)}')
-            
-            if tilt_fig:
-                self.tilt_current_point.clear()
-                self.tilt_current_point.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
-                                            'size': 30}])
-                self.tilt_all_points.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col),
-                                            'size': 10}])                
+                            
+            if self.update_graph.isChecked():
+                inplane = angles[0]
+                # print(pg.hsvColor(angles[2]/np.pi).getRgb())
+                tr = QtGui.QTransform()
+                angle_rot = tr.rotate(-inplane + 180)
+                my_rotated_symbol = angle_rot.map(my_symbol)
+                col = pg.hsvColor((inplane+180)/360)
+                self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
+                                            'symbol': my_rotated_symbol, 'size': 10}])
+                self.current_point.clear()
+                self.current_point.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 
+                                            'symbol': my_rotated_symbol, 'size': 30}])    
+                if tilt_fig:
+                    self.tilt_current_point.clear()
+                    self.tilt_current_point.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
+                                                'size': 30}])
+                    self.tilt_all_points.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col),
+                                                'size': 10}])                
 
     def key_pressed(self, ev):
         k = ev.key()
