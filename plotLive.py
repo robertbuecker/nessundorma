@@ -15,6 +15,7 @@ from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 import numpy as np
 import pyqtgraph as pg
 import io
+import json
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
@@ -170,23 +171,30 @@ _mos = np.asarray([
     [0.5, 0.25]
 ])
 _mos = np.asarray([
-    [0, -0.5],
-    [0.5, 0.25],
+    [-0.5, 0],
+    [0.5, 0.5],
     [0, 0],
-    [-0.5, 0.25],
-    [0, -0.5]
+    [0.5, -0.5],
+    [-0.5, 0]
 ])
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
 tilt_fig = False
 
-class MainWindow(pg.GraphicsLayoutWidget):
+class MainWindow(QtGui.QWidget):
     def __init__(self):
-        super().__init__(show=True, title="Putzini Tracker")
+        # super().__init__(show=True, title="Putzini Tracker")
+        super().__init__()
+        
+        self.plot_widget = pg.GraphicsLayoutWidget()
+        self.top_layout = QtGui.QGridLayout()
+        self.setLayout(self.top_layout)
+        self.top_layout.addWidget(self.plot_widget)
+        
         self.resize(500*(1+int(tilt_fig)),500)
         self.setWindowTitle('Putzini')
 
-        self.pos_coord = self.addPlot(title="In-plane (color: angle)", row=0, col=0)
+        self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
         self.pos_coord.setLabel('left', "Y", units='m')
         self.pos_coord.setLabel('bottom', "X", units='m')
         
@@ -196,19 +204,86 @@ class MainWindow(pg.GraphicsLayoutWidget):
         self.pos_coord.addItem(self.all_points)
 
         if tilt_fig:
-            self.tilt_coord = self.addPlot(title="Out-of-plane tilt", row=0, col=1)
+            self.tilt_coord = self.plot_widget.addPlot(title="Out-of-plane tilt", row=0, col=1)
             self.tilt_coord.setLabel('left', "tilt Y", units='deg')
             self.tilt_coord.setLabel('bottom', "tilt X", units='deg')
             self.tilt_all_points = pg.ScatterPlotItem(size=10)
             self.tilt_current_point = pg.ScatterPlotItem(size=30)
             self.tilt_coord.addItem(self.tilt_current_point)
-            self.tilt_coord.addItem(self.tilt_all_points)            
- 
+            self.tilt_coord.addItem(self.tilt_all_points)           
+        
+        self.control_layout = QtGui.QFormLayout()
+               
+        def haveacolor(ctrl):
+            print(ctrl.color().getRgb())
+        
+        move_command = QtGui.QLineEdit('stop()')
+        move_command.returnPressed.connect(lambda: self.command('move', move_command.text()))
+        self.control_layout.addRow(QtGui.QLabel('Move cmd'), move_command)
+                
+        abs_move = QtGui.QLineEdit('0, 0, 0')
+        abs_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        abs_move.returnPressed.connect(lambda: self.command('move', f'moveToPos({abs_move.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Abs move'), abs_move)
+                
+        rel_move = QtGui.QLineEdit('0, 0, 0')
+        rel_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        rel_move.returnPressed.connect(lambda: self.command('move', f'moveByPos({rel_move.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Rel move'), rel_move)
+        
+        abs_turn = QtGui.QLineEdit('0, 0')
+        abs_turn.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
+        abs_turn.returnPressed.connect(lambda: self.command('move', f'moveToAngle({abs_turn.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Abs turn'), abs_turn)
+        
+        rel_turn = QtGui.QLineEdit('0, 0')
+        rel_turn.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
+        rel_turn.returnPressed.connect(lambda: self.command('move', f'moveByAngle({rel_turn.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Rel turn'), rel_turn)     
+        
+        turn_to_arka = pg.QtGui.QPushButton('To Arka')
+        turn_to_arka.clicked.connect(lambda: self.command('move', 'lookAtArka()'))
+        self.control_layout.addRow(turn_to_arka)     
+        turn_to_arka.setMaximumWidth(200)
+        
+        stop = pg.QtGui.QPushButton('STOP')
+        stop.clicked.connect(lambda: self.command('move', 'stop()'))
+        self.control_layout.addRow(stop)    
+        stop.setMaximumWidth(200)
+        
+        height = pg.SpinBox(value=0)
+        # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
+        height.setOpts(bounds=(0,100), suffix='mm', step=1, int=True, compactHeight=False)
+        height.valueChanged.connect(lambda x: self.command('height', int(x)))
+        self.control_layout.addRow(QtGui.QLabel('Height'), height)  
+        
+        head = pg.SpinBox(value=0)
+        # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
+        head.setOpts(bounds=(0,255), suffix='stp', step=1, int=True, compactHeight=False)
+        head.valueChanged.connect(lambda x: self.command('height', int(x)))
+        self.control_layout.addRow(QtGui.QLabel('Head'), head)  
+                                                        
+        color_fg = pg.ColorButton()
+        color_fg.sigColorChanging.connect(lambda ctrl: self.command('lamp',
+            {'front': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue(), 'w': ctrl.color().alpha()}}))
+        self.control_layout.addRow(QtGui.QLabel('FG Color'), color_fg)
+                 
+        color_bg = pg.ColorButton()
+        color_bg.sigColorChanging.connect(lambda ctrl: self.command('lamp',
+            {'back': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue()}}))
+        self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
+        
+        self.control_layout.setSizeConstraint(self.control_layout.SetFixedSize)
+        # self.control_layout.SetMaximumSize(100,1000)
+        # self.control_layout.resize(100, self.control_layout.width())
+        self.top_layout.addLayout(self.control_layout, 0, 1)
+        
+
         self.client = MqttClient(self)
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
 
-        self.client.hostname = "192.168.1.29"
+        self.client.hostname = "192.168.1.19"
         self.client.connectToHost()
         
         self.keyPressEvent = self.key_pressed
@@ -216,6 +291,13 @@ class MainWindow(pg.GraphicsLayoutWidget):
         self.last_RT = None
         self.step_size = 500
 
+    def command(self, kind: str, value):
+        
+        cmd = {kind: value}
+        payload = json.dumps(cmd)
+        print(payload)
+        self.client.m_client.publish('putzini/commands', payload)
+        
     @QtCore.pyqtSlot(int)
     def on_stateChanged(self, state):
         if state == MqttClient.Connected:
@@ -230,27 +312,34 @@ class MainWindow(pg.GraphicsLayoutWidget):
         # R0 = Rotation.from_euler('XYZ', angles*np.array([0,0,1])).as_dcm()
         # RT_in[:3,:3] = R0
         # RT = np.linalg.inv(RT_in)
+        # RT[:2,:2] = np.dot([[0, 1], [-1, 0]], RT[:2,:2])
+        # RT = np.linalg.inv(RT)
         RT = RT_in
+        # RT[:2,:2] = np.dot([[0, 1], [-1, 0]], RT[:2,:2])
+        
         if (self.last_RT is None) or (self.last_RT != RT).any():
             self.last_RT = RT
             T = RT[:3,-1]
-            angles = Rotation.from_dcm(RT[:3,:3]).as_euler('XYZ')
+            angles = Rotation.from_dcm(RT[:3,:3]).as_euler('ZYX')
+            inplane = angles[0]
             # print(pg.hsvColor(angles[2]/np.pi).getRgb())
             tr = QtGui.QTransform()
-            angle_rot = tr.rotate(-angles[2]*180/np.pi + 180)
+            angle_rot = tr.rotate(-inplane*180/np.pi + 180)
             my_rotated_symbol = angle_rot.map(my_symbol)
-            col = pg.hsvColor((angles[2]+np.pi)/np.pi/2)
-            self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 'symbol': my_rotated_symbol, 'size': 10}])
+            col = pg.hsvColor((inplane+np.pi)/np.pi/2)
+            self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
+                                        'symbol': my_rotated_symbol, 'size': 10}])
             self.current_point.clear()
             self.current_point.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 
                                         'symbol': my_rotated_symbol, 'size': 30}])
-            print(f'New position: {T}, angles (Euler XYZ, deg): {angles*180/np.pi}')
+            with np.printoptions(precision=2, suppress=True):
+                print(f'New position: {T}, angles (Euler ZYX, deg): {(angles*180/np.pi)}')
             
             if tilt_fig:
                 self.tilt_current_point.clear()
-                self.tilt_current_point.addPoints([{'pos': angles[:2]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
+                self.tilt_current_point.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
                                             'size': 30}])
-                self.tilt_all_points.addPoints([{'pos': angles[:2]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
+                self.tilt_all_points.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col),
                                             'size': 10}])                
 
     def key_pressed(self, ev):
