@@ -361,7 +361,7 @@ class MainWindow(QtGui.QWidget):
             print('Right')       
             self.client.m_client.publish('putzini/turn', -self.step_size//5)
             
-        elif k == qtk.Key_PageUp:
+        elif k == qtk.Key_W:
             print('PgUp')                 
             self.step_size += 200
             print('New step size is', self.step_size)
@@ -373,7 +373,7 @@ class MainWindow(QtGui.QWidget):
                 self.tilt_all_points.clear()
             print('New step size is', self.step_size)            
             
-        elif k == qtk.Key_PageDown:   
+        elif k == qtk.Key_S:   
             print('PgDn')   
             self.step_size -= 200    
             print('New step size is', self.step_size)
