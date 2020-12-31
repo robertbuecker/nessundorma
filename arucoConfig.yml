@@ -1,0 +1,9 @@
+%YAML:1.0
+---
+aruco-dictionary: ARUCO_MIP_16h3
+aruco-detectMode: DM_FAST
+aruco-cornerRefinementM: CORNER_LINES
+aruco-thresMethod: THRES_ADAPTIVE
+aruco_markerSize: 0.1492
+dcf-detectRate: 10
+runSequential: 1
