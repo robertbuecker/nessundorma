@@ -32,8 +32,10 @@ import re
 
 import json
 import random
+import yaml
 
 from sys import argv
+import os
 
 class PutziniLamp:
     def __init__(self):
@@ -233,21 +235,45 @@ class PutziniNav:
     def __init__(self, mqtt_client):
         self.mqtt_client = mqtt_client
         self.detected = 0
-        
+        if os.path.exists('putziniNav.yml'):
+            with open('putziniNav.yml') as fh:
+                self.opts = yaml.load(fh)
+            self.opts = {} if self.opts is None else self.opts
+        else:
+            self.opts = {}
+
+        self.init_reference_system()
+
         # Transform convention:
         # _ba = "a as seen from b", or "transforms a coordinates to b coordinates"
-
-        # CALIBRATION
-        # cam on Putzini is rotated by about 90 deg and 15 cm above wheel hubs
-        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0], 
-                        [0,0,1,0.15], [0,0,0,1]]) 
-
-        self.RT_mr = np.diag([1, -1, -1, 1]) # reference as seen from ArUco system
 
         # MEASUREMENT
         self.RT_cm = np.eye(4) # marker as seen from camera (as received from ArUco)
         self.RT_pr = np.eye(4) # Reference seen from Putzini (stable intermediate)
         self.RT_rp = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
+        self.RT_pm = np.eye(4)
+
+    def init_reference_system(self):
+        # reference as seen from ArUco system. The flip of the z axis (180 deg around y)
+        # is always done, even if no additional calibration is present
+
+        if 'marker-system' in self.opts:
+            x, y, z, angle = (float(self.opts['marker-system'][k]) for k in ['x', 'y', 'z', 'angle'])
+            ca, sa = np.cos(angle*np.pi/180), np.sin(angle*np.pi/180)
+            reference = np.array([[ca, -sa, 0, x],
+                                [sa, ca, 0, y],
+                                [0, 0, 1, z],
+                                [0, 0, 0, 1]])
+            print('Setting reference system w.r.t. marker system to:')
+            print(reference)
+            self.RT_mr = np.matmul(reference, np.diag([1, -1, -1, 1]))
+
+        else:
+            self.RT_mr = np.diag([1, -1, -1, 1])
+
+        # cam on Putzini is hard-coded: rotated by about 90 deg and 15 cm above wheel hubs
+        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0], 
+                        [0,0,1,0.15], [0,0,0,1]])             
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
@@ -274,8 +300,8 @@ class PutziniNav:
                 self.RT_cm = np.array(eval(RT_str))
 
                 # transformation steps ensue...
-                RT_pm = np.matmul(self.RT_pc, self.RT_cm)
-                self.RT_pr = np.matmul(RT_pm, self.RT_mr)
+                self.RT_pm = np.matmul(self.RT_pc, self.RT_cm)
+                self.RT_pr = np.matmul(self.RT_pm, self.RT_mr)
                 self.RT_rp = np.linalg.inv(self.RT_pr)
 
                 self.position = self.RT_rp[:3,-1]
@@ -285,7 +311,6 @@ class PutziniNav:
                 
                 xform = transform.Rotation.from_dcm(self.RT_rp[:3,:3])
                 self.alpha = xform.as_euler('XYZ')*180/np.pi
-
     # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
 
 
@@ -294,6 +319,22 @@ class PutziniNav:
     
     def get_position(self):
         return self.position[:2]
+
+    def set_reference_position(self, clear=False):    
+        if clear:
+            self.opts['marker-system'] = {'x': 0, 'y': 0, 
+                'z': 0, 'angle': 0}
+        else:
+            RT_calib = np.matmul(np.linalg.inv(self.RT_pm), np.diag([1, -1, -1, 1]))
+            angles = transform.Rotation.from_dcm(RT_calib[:3,:3]).as_euler('XYZ')*180/np.pi
+
+            self.opts['marker-system'] = {'x': float(RT_calib[0,-1]), 'y': float(RT_calib[1,-1]), 
+                'z': float(RT_calib[2,-1]), 'angle': float(angles[2])}
+
+        self.init_reference_system()
+
+        with open('putziniNav.yml', 'w') as fh:
+            yaml.dump(self.opts, fh)
 
 class Putzini:
     def __init__(self, mqtt_client):
@@ -454,6 +495,14 @@ async def parse_json_commands(messages, putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.move_random(*pp))
+                elif cmd["move"].startswith("setReferencePos"):
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    putzini.nav.set_reference_position(clear=False)         
+                elif cmd["move"].startswith("clearReferencePos"):
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    putzini.nav.set_reference_position(clear=True)                                
         except Exception as e:
             print(e)
             print(f"error parsing {message.payload.decode('utf-8')}")
