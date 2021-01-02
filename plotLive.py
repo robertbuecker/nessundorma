@@ -41,6 +41,7 @@ class MqttClient(QtCore.QObject):
     protocolVersionChanged = QtCore.pyqtSignal(int)
 
     messageSignal = QtCore.pyqtSignal(str)
+    voltageSignal = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         super(MqttClient, self).__init__(parent)
@@ -144,9 +145,14 @@ class MqttClient(QtCore.QObject):
     #################################################################
     # callbacks
     def on_message(self, mqttc, obj, msg):
-        mstr = msg.payload.decode("utf-8")
-        # print("on_message", mstr, obj, mqttc)
-        self.messageSignal.emit(mstr)
+        if msg.topic == 'putzini/position':
+            mstr = msg.payload.decode("utf-8")
+            # print("on_message", mstr, obj, mqttc)
+            self.messageSignal.emit(mstr)
+        else:
+            print(msg.topic, msg.payload)
+            mstr = float(msg.payload.decode("utf-8"))
+            self.voltageSignal.emit(mstr)
 
     def on_connect(self, *args):
         # print("on_connect", args)
@@ -180,6 +186,7 @@ _mos = np.asarray([
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
 tilt_fig = False
+jitter_limit = 0.001 # in m
 
 class MainWindow(QtGui.QWidget):
     def __init__(self):
@@ -190,14 +197,13 @@ class MainWindow(QtGui.QWidget):
         self.top_layout = QtGui.QGridLayout()
         self.setLayout(self.top_layout)
         self.top_layout.addWidget(self.plot_widget)
-        
         self.resize(850*(1+int(tilt_fig)),700)
         self.setWindowTitle('Putzini')
 
+        # START PLOTS ---
         self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
-        self.pos_coord.setLabel('left', "Y", units='m')
-        self.pos_coord.setLabel('bottom', "X", units='m')
-        
+        self.pos_coord.setLabel('left', "Y", units='cm')
+        self.pos_coord.setLabel('bottom', "X", units='cm')    
         self.all_points = pg.ScatterPlotItem(size=10)
         self.current_point = pg.ScatterPlotItem(size=30)
         self.pos_coord.addItem(self.current_point)
@@ -211,11 +217,10 @@ class MainWindow(QtGui.QWidget):
             self.tilt_current_point = pg.ScatterPlotItem(size=30)
             self.tilt_coord.addItem(self.tilt_current_point)
             self.tilt_coord.addItem(self.tilt_all_points)           
+        # STOP PLOTS ---
         
+        # START CONTROLS ---
         self.control_layout = QtGui.QFormLayout()
-               
-        def haveacolor(ctrl):
-            print(ctrl.color().getRgb())
         
         self.update_graph = QtGui.QCheckBox('Update Graph')
         self.update_graph.setChecked(True)
@@ -277,6 +282,7 @@ class MainWindow(QtGui.QWidget):
             {'back': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue()}}))
         self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
                  
+        # indicators
         self.xpos_indicator = QtGui.QLineEdit(readOnly=True)
         self.control_layout.addRow(QtGui.QLabel('X Position'), self.xpos_indicator)
                  
@@ -287,17 +293,17 @@ class MainWindow(QtGui.QWidget):
         self.control_layout.addRow(QtGui.QLabel('Angle'), self.angle_indicator)
                           
         self.battery_indicator = QtGui.QLineEdit(readOnly=True)
-        self.control_layout.addRow(QtGui.QLabel('Bat Volt'), self.battery_indicator)
+        self.control_layout.addRow(QtGui.QLabel('Battery'), self.battery_indicator)
                                
         self.control_layout.setSizeConstraint(self.control_layout.SetFixedSize)
-        # self.control_layout.SetMaximumSize(100,1000)
-        # self.control_layout.resize(100, self.control_layout.width())
         self.top_layout.addLayout(self.control_layout, 0, 1)
+        # END CONTROLS ---
         
 
         self.client = MqttClient(self)
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
+        self.client.voltageSignal.connect(self.on_voltageSignal)
 
         self.client.hostname = "192.168.1.19"
         self.client.connectToHost()
@@ -305,7 +311,7 @@ class MainWindow(QtGui.QWidget):
         self.keyPressEvent = self.key_pressed
         
         self.last_RT = None
-        self.step_size = 500
+        self.step_size = 2000
 
     def command(self, kind: str, value):
         
@@ -319,25 +325,24 @@ class MainWindow(QtGui.QWidget):
         if state == MqttClient.Connected:
             print(state)
             self.client.subscribe("putzini/position")
+            self.client.subscribe("putzini/v_batt")
+
+    @QtCore.pyqtSlot(float)
+    def on_voltageSignal(self, voltage):
+        self.battery_indicator.setText(f'{voltage:.2f} V')
 
     @QtCore.pyqtSlot(str)
     def on_messageSignal(self, msg):
-        RT_in = eval('np.' + msg)
-        # RT_in = np.dot(np.diag([1,-1,-1,1]), RT_in)
-        # angles = Rotation.from_dcm(RT_in[:3, :3]).as_euler('XYZ')
-        # R0 = Rotation.from_euler('XYZ', angles*np.array([0,0,1])).as_dcm()
-        # RT_in[:3,:3] = R0
-        # RT = np.linalg.inv(RT_in)
-        # RT[:2,:2] = np.dot([[0, 1], [-1, 0]], RT[:2,:2])
-        # RT = np.linalg.inv(RT)
-        RT = RT_in
-        # RT[:2,:2] = np.dot([[0, 1], [-1, 0]], RT[:2,:2])
         
-        if (self.last_RT is None) or (self.last_RT != RT).any():
+        RT = eval('np.' + msg)
+
+        if (self.last_RT is None) or not np.allclose(RT, self.last_RT):
             
+            # d_T = sum((RT - self.last_RT if self.last_RT is None else 0)[-3:-1]**2)**.5
+            d_T = np.inf if self.last_RT is None else sum((RT - self.last_RT)[:3,-1]**2)**.5
             self.last_RT = RT
             T = RT[:3,-1]
-            angles = (Rotation.from_dcm(RT[:3,:3]).as_euler('ZYX')*180/np.pi).round(1)
+            angles = (Rotation.from_dcm(RT[:3,:3]).as_euler('XYZ')*180/np.pi).round(1)
         
             self.xpos_indicator.setText(f'{T[0]*100:.0f} cm')
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
@@ -345,26 +350,28 @@ class MainWindow(QtGui.QWidget):
             
             
             with np.printoptions(precision=2, suppress=True):
-                print(f'New position: {T}, angles (Euler ZYX, deg): {(angles*180/np.pi)}')
+                print(f'New position: {T}, angles (Euler XYZ, deg): {(angles)}')
                             
-            if self.update_graph.isChecked():
-                inplane = angles[0]
+            if self.update_graph.isChecked() and d_T > jitter_limit:
+                inplane = angles[2]
                 # print(pg.hsvColor(angles[2]/np.pi).getRgb())
                 tr = QtGui.QTransform()
                 angle_rot = tr.rotate(-inplane + 180)
                 my_rotated_symbol = angle_rot.map(my_symbol)
                 col = pg.hsvColor((inplane+180)/360)
-                self.all_points.addPoints([{'pos': T[:-1], 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
+                self.all_points.addPoints([{'pos': T[:-1]*100, 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
                                             'symbol': my_rotated_symbol, 'size': 10}])
-                self.current_point.clear()
-                self.current_point.addPoints([{'pos': T[:-1], 'data': 1, 'brush':pg.mkBrush(col), 
-                                            'symbol': my_rotated_symbol, 'size': 30}])    
+                # self.current_point.clear()
+                self.current_point.setData([{'pos': T[:-1]*100, 'data': 1, 'brush':pg.mkBrush(col), 
+                                            'symbol': my_rotated_symbol, 'size': 30}], clear=True)    
                 if tilt_fig:
                     self.tilt_current_point.clear()
                     self.tilt_current_point.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
                                                 'size': 30}])
                     self.tilt_all_points.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col),
-                                                'size': 10}])                
+                                                'size': 10}])          
+                    
+                QtGui.QGuiApplication.processEvents()
 
     def key_pressed(self, ev):
         k = ev.key()
@@ -385,23 +392,25 @@ class MainWindow(QtGui.QWidget):
             print('Right')       
             self.client.m_client.publish('putzini/turn', -self.step_size//5)
             
-        elif k == qtk.Key_W:
-            print('PgUp')                 
+        elif k == qtk.Key_W:           
             self.step_size += 200
             print('New step size is', self.step_size)
             
         elif k == qtk.Key_R:
-            print('R')
             self.all_points.clear()
             if tilt_fig:
                 self.tilt_all_points.clear()
-            print('New step size is', self.step_size)            
+            QtGui.QGuiApplication.processEvents()
+            print('Cleared plot')            
             
         elif k == qtk.Key_S:   
-            print('PgDn')   
             self.step_size -= 200    
             print('New step size is', self.step_size)
-                        
+            
+        elif k == qtk.Key_Space:   
+            self.command('move', 'stop()') 
+            print('Movement stopped')
+                                    
         else:
             # pg.Qt.Key
             print('Key pressed:', k)
