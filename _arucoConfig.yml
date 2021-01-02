@@ -4,8 +4,8 @@ aruco-dictionary: ARUCO_MIP_16h3
 aruco-detectMode: DM_NORMAL
 aruco-cornerRefinementM: CORNER_LINES
 aruco-thresMethod: THRES_ADAPTIVE
-aruco-markerSize: 0.1492
-aruco-ThresHold: 7
+aruco_markerSize: 0.1492
+aruco-ThresHold: 7c
 aruco-AdaptiveThresWindowSize_range: 0
 dcf-detectRate: 10
 runSequential: 1
