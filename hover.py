@@ -379,7 +379,7 @@ class Putzini:
                 speed = min(speed,50)
                 
             # turn
-            distance = -a*self.putz_per_degree
+            distance = a*self.putz_per_degree
             self.drive.turn(distance, speed)
             await asyncio.sleep(200e-3)       
 
