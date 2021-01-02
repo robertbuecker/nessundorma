@@ -33,6 +33,8 @@ import re
 import json
 import random
 
+from sys import argv
+
 class PutziniLamp:
     def __init__(self):
         self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
@@ -243,7 +245,8 @@ class PutziniNav:
         self.RT_pr = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
     
     async def start(self):
-        self.proc = await asyncio.create_subprocess_exec('aruco_dcf_mm','live:0','calib_usbgs/map.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
+        cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
+        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
         asyncio.ensure_future(self._reader_task())
 
     async def _reader_task(self):
@@ -318,11 +321,40 @@ class Putzini:
         
         await asyncio.gather(d, n, l, m)
     
-    async def turn_absolute(self, angle, speed = 60):
-        
+    async def turn_absolute(self, angle, speed=60, accuracy=2, slow_angle=20):
+        angle = int(angle)
+
         while True:
             # if needed wrap into loop
-            angle = int(angle)
+            
+            old_angle = self.nav.get_angle()
+            
+            # calculate the needed relative turn 
+            # https://stackoverflow.com/questions/1878907
+            a = angle - old_angle
+            a = (a + 180) % 360 - 180
+            
+            print (f"turn from: {old_angle} to {angle} => turn: {a} meas speed: [{self.drive.meas_speed_r}, {self.drive.meas_speed_l}] speed: {speed}")
+            
+            if (abs(a) < accuracy) and (self.drive.meas_speed_r < 5) and (self.drive.meas_speed_l < 5):
+                #putzini.drive.stop() not working? no idea why!
+                break
+            
+            if abs(a) < slow_angle:
+                speed = min(speed,50)
+                
+            # turn
+            distance = -a*self.putz_per_degree
+            self.drive.turn(distance, speed)
+            await asyncio.sleep(200e-3)       
+
+    async def turn_relative(self, delta_angle, speed=60, accuracy=2, slow_angle=20):
+
+        delta_angle = int(delta_angle)
+
+        raise NotImplementedError('In progress')
+        while True:
+
             old_angle = self.nav.get_angle()
             
             # calculate the needed relative turn 
@@ -342,9 +374,7 @@ class Putzini:
             # turn
             distance = -a*self.putz_per_degree
             self.drive.turn(distance, speed)
-            await asyncio.sleep(200e-3)
-
-        
+            await asyncio.sleep(200e-3)      
         
     async def move_absolute(self, x, y=0, speed=60):
         x= int(x) / 100
@@ -368,13 +398,18 @@ class Putzini:
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
             
-    async def move_random(self, speed = 60):
+    async def move_random(self, xmin=0, xmax=0, ymin=0, ymax=0, speed=60):
         while True:
-            await move_absolute(random.randint(-100,0), random.randint(-50,50), speed)
+            next_x = random.randint(xmin, xmax)
+            next_y = random.randint(ymin, ymax)
+            print(f'Random step to {next_x}, {next_y}, speed: {speed}')
+            await self.move_absolute(next_x, next_y, speed)
             
+    async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
+        raise NotImplementedError('do it')
 
-
-
+    async def move_back_forth(self, range=0, speed=60, random=1):
+        raise NotImplementedError('do it')
 
 async def call_func_with_msg(messages, func):
     async for message in messages:
@@ -421,10 +456,10 @@ async def parse_json_commands(messages, putzini):
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.turn_absolute(pp[0],pp[1]))
                 elif cmd["move"].startswith("moveRandom"):
-                    pp = parse_command("moveRandom", 1, cmd["move"])
+                    pp = parse_command("moveRandom", 5, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
-                    move_task = asyncio.ensure_future(putzini.move_random(pp[0]))
+                    move_task = asyncio.ensure_future(putzini.move_random(*pp))
         except Exception as e:
             print(e)
             print(f"error parsing {message.payload.decode('utf-8')}")
