@@ -234,16 +234,21 @@ class PutziniNav:
         self.mqtt_client = mqtt_client
         self.detected = 0
         
+        # Transform convention:
+        # _ba = "a as seen from b", or "transforms a coordinates to b coordinates"
+
         # CALIBRATION
-        self.RT_rm = np.diag([1, -1, -1, 1]) # reference as seen from ArUco system
-        self.RT_cp = np.array([[0,-1,0,0], [1,0,0,0], [0,0,1,0], [0,0,0,1]]) # camera position on Putzini
-        # self.RT_rm = np.eye(4)
-        # self.RT_cp = np.eye(4)
+        # cam on Putzini is rotated by about 90 deg and 15 cm above wheel hubs
+        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0], 
+                        [0,0,1,0.15], [0,0,0,1]]) 
+
+        self.RT_mr = np.diag([1, -1, -1, 1]) # reference as seen from ArUco system
 
         # MEASUREMENT
-        self.RT_mc = np.eye(4) # marker as seen from camera (as received from ArUco)
-        self.RT_pr = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
-    
+        self.RT_cm = np.eye(4) # marker as seen from camera (as received from ArUco)
+        self.RT_pr = np.eye(4) # Reference seen from Putzini (stable intermediate)
+        self.RT_rp = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
+
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
         self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
@@ -266,37 +271,26 @@ class PutziniNav:
                 f'[{ln2.replace(";", "],")}' + \
                 f'[{ln3}]'
 
-                # _ab = "a as seen from b", or "transforms a coordinates to b coordinates"
-                self.RT_mc = np.array(eval(RT_str))
-                
-                if False:
-                    # transformation steps ensue...
-                    RT_mp = np.matmul(self.RT_mc, self.RT_cp)
-                    # RT_pm = np.linalg.inv(RT_mp)
-                    RT_pm = RT_mp
-                    self.RT_pr = np.matmul(RT_pm, np.linalg.inv(self.RT_rm))
-                    # RT_rp = np.matmul(self.RT_rm, RT_mp)
-                    # self.RT_pr = np.linalg.inv(RT_rp)
+                self.RT_cm = np.array(eval(RT_str))
 
-                else:
-                    # will work due to black magic
-                    RT_rc = np.matmul(self.RT_rm, self.RT_mc)
-                    RT_cr = np.linalg.inv(RT_rc)
-                    self.RT_pr = RT_cr
-                    self.RT_pr[:2,:2] = np.matmul(np.linalg.inv(self.RT_cp[:2,:2]), self.RT_pr[:2,:2])
-                    
-                self.position = self.RT_pr[:3,-1]
+                # transformation steps ensue...
+                RT_pm = np.matmul(self.RT_pc, self.RT_cm)
+                self.RT_pr = np.matmul(RT_pm, self.RT_mr)
+                self.RT_rp = np.linalg.inv(self.RT_pr)
+
+                self.position = self.RT_rp[:3,-1]
+
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))
+                # asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_pr),qos=0))
                 
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_pr),qos=0))
-                
-                xform = transform.Rotation.from_dcm(self.RT_pr[:3,:3])
-                self.alpha = xform.as_euler('ZYX')*180/np.pi
+                xform = transform.Rotation.from_dcm(self.RT_rp[:3,:3])
+                self.alpha = xform.as_euler('XYZ')*180/np.pi
 
     # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
 
 
     def get_angle(self):
-        return self.alpha[0]
+        return self.alpha[2]
     
     def get_position(self):
         return self.position[:2]
