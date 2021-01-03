@@ -327,7 +327,7 @@ class PutziniNav:
         return self.alpha[2]
 
     async def get_new_angle(self):
-        print(self.timestamp, self.t_last_angle)
+        # print(self.timestamp, self.t_last_angle)
         while self.timestamp == self.t_last_angle:
             print(self.timestamp)
 
@@ -401,7 +401,7 @@ class Putzini:
             # turn
             distance = a*self.putz_per_degree
             self.drive.turn(distance, speed)
-            await asyncio.sleep(200e-3)       
+            await asyncio.sleep(10e-3)       
 
     async def turn_relative(self, delta_angle, speed=60, accuracy=2, slow_angle=20):
 
