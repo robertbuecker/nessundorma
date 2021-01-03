@@ -36,6 +36,7 @@ import yaml
 
 from sys import argv
 import os
+import time
 
 class PutziniLamp:
     def __init__(self):
@@ -190,6 +191,7 @@ class PutziniDrive:
             self.writer.write(frame)
 
     def stop(self):
+        print('IMMEDIATE STOP')
         self.distance_to_move_r = 0
         self.distance_to_move_l = 0
 
@@ -252,6 +254,8 @@ class PutziniNav:
         self.RT_pr = np.eye(4) # Reference seen from Putzini (stable intermediate)
         self.RT_rp = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
         self.RT_pm = np.eye(4)
+        self.timestamp = -1.
+        self.t_last_angle = -1.
 
     def init_reference_system(self):
         # reference as seen from ArUco system. The flip of the z axis (180 deg around y)
@@ -291,6 +295,8 @@ class PutziniNav:
                 ln1 = (await self.proc.stdout.readline()).decode()
                 ln2 = (await self.proc.stdout.readline()).decode()
                 ln3 = (await self.proc.stdout.readline()).decode()
+
+                self.timestamp = time.time()
             
                 RT_str = f'[{ln.replace(";", "],")} ' + \
                 f'[{ln1.replace(";", "],")}' + \
@@ -304,20 +310,32 @@ class PutziniNav:
                 self.RT_pr = np.matmul(self.RT_pm, self.RT_mr)
                 self.RT_rp = np.linalg.inv(self.RT_pr)
 
-                self.position = self.RT_rp[:3,-1]
-
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))
-                # asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_pr),qos=0))
-                
                 xform = transform.Rotation.from_dcm(self.RT_rp[:3,:3])
-                self.alpha = xform.as_euler('XYZ')*180/np.pi
-    # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
+                alpha = xform.as_euler('XYZ')*180/np.pi
 
+                if 'out-of-plane-limit' in self.opts and max(alpha[:2]) > float(self.opts['out-of-plane-limit']):
+                    print(f'WARNING: out of plane angles {alpha[:2]} exceed limit.')
+                else:
+                    self.position = self.RT_rp[:3,-1]
+                    self.alpha = alpha
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
+                
+
+    # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
 
     def get_angle(self):
         return self.alpha[2]
+
+    async def get_new_angle(self):
+        print(self.timestamp, self.t_last_angle)
+        while self.timestamp == self.t_last_angle:
+            print(self.timestamp)
+
+            await asyncio.sleep(0.2)
+        self.t_last_angle = self.timestamp
+        return self.alpha[2]
     
-    def get_position(self):
+    def get_position(self, wait_for_new=False):
         return self.position[:2]
 
     def set_reference_position(self, clear=False):    
@@ -359,20 +377,22 @@ class Putzini:
     async def turn_absolute(self, angle, speed=60, accuracy=2, slow_angle=20):
         angle = int(angle)
 
+        print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
         while True:
             # if needed wrap into loop
             
-            old_angle = self.nav.get_angle()
+            # old_angle = self.nav.get_angle()
+            old_angle = (await asyncio.gather(self.nav.get_new_angle()))[0]
             
             # calculate the needed relative turn 
             # https://stackoverflow.com/questions/1878907
             a = angle - old_angle
             a = (a + 180) % 360 - 180
-            
-            print (f"turn from: {old_angle} to {angle} => turn: {a} meas speed: [{self.drive.meas_speed_r}, {self.drive.meas_speed_l}] speed: {speed}")
+
+            print (f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}")
             
             if (abs(a) < accuracy) and (self.drive.meas_speed_r < 5) and (self.drive.meas_speed_l < 5):
-                #putzini.drive.stop() not working? no idea why!
+                self.drive.stop() #not working? no idea why!
                 break
             
             if abs(a) < slow_angle:
@@ -385,31 +405,9 @@ class Putzini:
 
     async def turn_relative(self, delta_angle, speed=60, accuracy=2, slow_angle=20):
 
-        delta_angle = int(delta_angle)
+        # delta_angle = int(delta_angle)
+        await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
 
-        raise NotImplementedError('In progress')
-        while True:
-
-            old_angle = self.nav.get_angle()
-            
-            # calculate the needed relative turn 
-            # https://stackoverflow.com/questions/1878907
-            a = angle - old_angle
-            a = (a + 180) % 360 - 180
-            
-            print (f"turn from: {old_angle} to {angle} => turn: {a} meas speed: [{self.drive.meas_speed_r}, {self.drive.meas_speed_l}] speed: {speed}")
-            
-            if (abs(a) < 2) and (self.drive.meas_speed_r < 5) and (self.drive.meas_speed_l < 5):
-                #putzini.drive.stop() not working? no idea why!
-                break
-            
-            if abs(a) < 20:
-                speed = min(speed,50)
-                
-            # turn
-            distance = -a*self.putz_per_degree
-            self.drive.turn(distance, speed)
-            await asyncio.sleep(200e-3)      
         
     async def move_absolute(self, x, y=0, speed=60):
         x= int(x) / 100
@@ -490,6 +488,11 @@ async def parse_json_commands(messages, putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.turn_absolute(pp[0],pp[1]))
+                elif cmd["move"].startswith("moveByAngle"):
+                    pp = parse_command("moveByAngle", 2, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    move_task = asyncio.ensure_future(putzini.turn_relative(pp[0],pp[1]))                    
                 elif cmd["move"].startswith("moveRandom"):
                     pp = parse_command("moveRandom", 5, cmd["move"])
                     move_task.cancel()
