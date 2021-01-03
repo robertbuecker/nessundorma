@@ -295,8 +295,6 @@ class PutziniNav:
                 ln1 = (await self.proc.stdout.readline()).decode()
                 ln2 = (await self.proc.stdout.readline()).decode()
                 ln3 = (await self.proc.stdout.readline()).decode()
-
-                self.timestamp = time.time()
             
                 RT_str = f'[{ln.replace(";", "],")} ' + \
                 f'[{ln1.replace(";", "],")}' + \
@@ -318,6 +316,8 @@ class PutziniNav:
                 else:
                     self.position = self.RT_rp[:3,-1]
                     self.alpha = alpha
+                    self.timestamp = time.time()
+
                 asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
                 
 
@@ -329,9 +329,8 @@ class PutziniNav:
     async def get_new_angle(self):
         # print(self.timestamp, self.t_last_angle)
         while self.timestamp == self.t_last_angle:
-            print(self.timestamp)
-
-            await asyncio.sleep(0.2)
+            # print(self.timestamp)
+            await asyncio.sleep(0.04)
         self.t_last_angle = self.timestamp
         return self.alpha[2]
     
@@ -374,13 +373,15 @@ class Putzini:
         
         await asyncio.gather(d, n, l, m)
     
-    async def turn_absolute(self, angle, speed=60, accuracy=2, slow_angle=20):
+    async def turn_absolute(self, angle, speed=60, accuracy=2, slow_angle=30):
         angle = int(angle)
 
         print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
+        fudge = 1
+        prev_a = 0
+        close_to_target = False
+
         while True:
-            # if needed wrap into loop
-            
             # old_angle = self.nav.get_angle()
             old_angle = (await asyncio.gather(self.nav.get_new_angle()))[0]
             
@@ -389,19 +390,32 @@ class Putzini:
             a = angle - old_angle
             a = (a + 180) % 360 - 180
 
-            print (f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}")
-            
-            if (abs(a) < accuracy) and (self.drive.meas_speed_r < 5) and (self.drive.meas_speed_l < 5):
-                self.drive.stop() #not working? no idea why!
-                break
-            
+            # overshoot damper
+            if a*prev_a < 0:
+                fudge = fudge/2
+            prev_a = a
+
+            print (f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
+
             if abs(a) < slow_angle:
                 speed = min(speed,50)
-                
+                            
+            if (abs(a) < accuracy) and (abs(self.drive.meas_speed_r) < 5) and (abs(self.drive.meas_speed_l) < 5):
+                if close_to_target == True:
+                    self.drive.stop() #not working? no idea why!
+                    break
+                else:
+                    # wait an extra round near the end...
+                    await asyncio.sleep(0.2)
+                    close_to_target = True
+                    continue
+            else:
+                close_to_target = False
+
             # turn
-            distance = a*self.putz_per_degree
+            distance = a*self.putz_per_degree*fudge
             self.drive.turn(distance, speed)
-            await asyncio.sleep(10e-3)       
+            await asyncio.sleep(20e-3)       
 
     async def turn_relative(self, delta_angle, speed=60, accuracy=2, slow_angle=20):
 
