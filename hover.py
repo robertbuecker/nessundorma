@@ -327,14 +327,12 @@ class PutziniNav:
         return self.alpha[2]
 
     async def get_new_angle(self):
-        # print(self.timestamp, self.t_last_angle)
         while self.timestamp == self.t_last_angle:
-            # print(self.timestamp)
             await asyncio.sleep(0.04)
         self.t_last_angle = self.timestamp
         return self.alpha[2]
     
-    def get_position(self, wait_for_new=False):
+    def get_position(self):
         return self.position[:2]
 
     def set_reference_position(self, clear=False):    
@@ -373,7 +371,7 @@ class Putzini:
         
         await asyncio.gather(d, n, l, m)
     
-    async def turn_absolute(self, angle, speed=60, accuracy=2, slow_angle=30):
+    async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30):
         angle = int(angle)
 
         print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
@@ -392,7 +390,7 @@ class Putzini:
 
             # overshoot damper
             if a*prev_a < 0:
-                fudge = fudge/2
+                fudge = max(0.05,fudge*0.7)
             prev_a = a
 
             print (f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
@@ -417,15 +415,30 @@ class Putzini:
             self.drive.turn(distance, speed)
             await asyncio.sleep(20e-3)       
 
-    async def turn_relative(self, delta_angle, speed=60, accuracy=2, slow_angle=20):
+    async def turn_relative(self, delta_angle, speed=60, accuracy=4, slow_angle=20):
 
         # delta_angle = int(delta_angle)
         await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
 
-        
-    async def move_absolute(self, x, y=0, speed=60):
+    async def look_at(self, x, y, speed=60, accuracy=2):
         x= int(x) / 100
         y= int(y) / 100
+        start = self.nav.get_position()
+        end = np.array([x,y])
+
+        diff = end-start
+        a = math.atan2(diff[1], diff[0])/math.pi*180
+        if speed < 0:
+            a += 180
+        
+        print (f"Look from {start} at {end}: turn to {a}°")
+        await self.turn_absolute(a, np.abs(speed))
+
+    async def move_absolute(self, x, y=0, speed=60, accuracy=10):
+        #TODO adaptive rotation accuracy
+        x= int(x) / 100
+        y= int(y) / 100
+        accuracy = int(accuracy) / 100
         
         while True: 
             start = self.nav.get_position()
@@ -434,18 +447,20 @@ class Putzini:
             diff = end-start
             distance = np.linalg.norm(diff)
             
-            if distance < 0.1:
+            if distance < accuracy:
                 break
             
             a = math.atan2(diff[1], diff[0])/math.pi*180
+            if speed < 0:
+                a += 180
             
             print (f"move from {start} to {end}: turn to {a}° and drive {distance}m.")
-            await self.turn_absolute(a, speed)
+            await self.turn_absolute(a, np.abs(speed), accuracy=max(3,10*min(distance,1)))
             
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
             
-    async def move_random(self, xmin=0, xmax=0, ymin=0, ymax=0, speed=60):
+    async def move_random(self, speed=60, xmin=0, xmax=0, ymin=0, ymax=0):
         while True:
             next_x = random.randint(xmin, xmax)
             next_y = random.randint(ymin, ymax)
@@ -453,10 +468,41 @@ class Putzini:
             await self.move_absolute(next_x, next_y, speed)
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
-        raise NotImplementedError('do it')
+        distance, xmin, xmax, ymin, ymax = (int(p) / 100 for p in (distance, xmin, xmax, ymin, ymax))
+        dist_putz = self.putz_per_meter*distance
+        final_pos = self.nav.get_position() + [np.cos(self.nav.get_angle()*np.pi/180)*distance, np.sin(self.nav.get_angle()*np.pi/180)*distance]
+        speed = np.abs(int(speed))
+        if (xmin is not None and (final_pos[0] < xmin)) or (xmax is not None and (final_pos[0] > xmax)) \
+                or (ymin is not None and (final_pos[1] < ymin)) or (ymax is not None and (final_pos[1] > ymax)):
+            raise ValueError('Final position of straight move outside bounds')
+        print(f'Straight move by {distance} m = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
+        self.drive.move(dist_putz, speed=-speed)
+        await self.drive.finished
+        print(f'Straight move finished. Actual pos is {self.nav.get_position()} -> {self.nav.get_position() - final_pos} off ({((self.nav.get_position() - final_pos)**2).sum()**.5:.3f} m).')
 
-    async def move_back_forth(self, range=0, speed=60, random=1):
-        raise NotImplementedError('do it')
+    async def move_back_forth(self, range=0, max_angle=15, speed=60, random=1, xmin=None, xmax=None, ymin=None, ymax=None):
+        curr_pos_linear = 0
+        new_d = 0
+        start_pos = self.nav.get_position()
+        start_angle = self.nav.get_angle()
+
+        while True:
+            a = ((self.nav.get_angle() - start_angle) + 180) % 360 - 180
+            print(f'Back-and-forth angle deviation is now {a}')
+            if abs(a) > max_angle:
+                await self.turn_absolute(start_angle, speed=50, accuracy=max_angle/2, slow_angle=max_angle)
+            if new_d >= 0:
+                new_d = np.random.randint(-range//2-curr_pos_linear, 0) if random else -range//2
+            else:
+                new_d = np.random.randint(1, range//2+1-curr_pos_linear) if random else range//2
+            try:
+                await self.move_straight(distance=new_d, speed=speed, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+            except ValueError:
+                self.drive.stop()
+                print('Resetting Putzini to initial position.')
+                await self.move_absolute(100*start_pos[0], 100*start_pos[1], speed=speed)
+            await self.drive.finished
+            curr_pos_linear += new_d
 
 async def call_func_with_msg(messages, func):
     async for message in messages:
@@ -483,10 +529,12 @@ async def parse_json_commands(messages, putzini):
             cmd = json.loads(message.payload.decode("utf-8"))
             print (f"cmd: {cmd}")
             if "lamp" in cmd and cmd["lamp"] != None:
-                putzini.lamp.set_lamp(cmd["lamp"])
+                l = cmd["lamp"]
+                putzini.lamp.set_lamp(l)
                 print(f"setting lampe to: {l}")
             if "head" in cmd and cmd["head"] != None:
-                putzini.lamp.set_head(int(cmd["head"]))
+                h = int(cmd["head"])
+                putzini.lamp.set_head(h)
                 print(f"setting head to: {h}")
             if "move" in cmd and cmd["move"] != None:
                 if cmd["move"] == "stop()":
@@ -499,6 +547,7 @@ async def parse_json_commands(messages, putzini):
                     move_task = asyncio.ensure_future(putzini.move_absolute(pp[0],pp[1],pp[2]))
                 elif cmd["move"].startswith("moveToAngle"):
                     pp = parse_command("moveToAngle", 2, cmd["move"])
+                    print(pp)
                     move_task.cancel()
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.turn_absolute(pp[0],pp[1]))
@@ -506,12 +555,27 @@ async def parse_json_commands(messages, putzini):
                     pp = parse_command("moveByAngle", 2, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
-                    move_task = asyncio.ensure_future(putzini.turn_relative(pp[0],pp[1]))                    
+                    move_task = asyncio.ensure_future(putzini.turn_relative(pp[0],pp[1]))                
+                elif cmd["move"].startswith("lookAtPos"):
+                    pp = parse_command("lookAtPos", 3, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    move_task = asyncio.ensure_future(putzini.look_at(pp[0],pp[1],pp[2]))                            
                 elif cmd["move"].startswith("moveRandom"):
                     pp = parse_command("moveRandom", 5, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.move_random(*pp))
+                elif cmd["move"].startswith("moveStraight"):
+                    pp = parse_command("moveStraight", 2, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    move_task = asyncio.ensure_future(putzini.move_straight(*pp))     
+                elif cmd["move"].startswith("moveBackForth"):
+                    pp = parse_command("moveBackForth", 8, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    move_task = asyncio.ensure_future(putzini.move_back_forth(*pp))                                                 
                 elif cmd["move"].startswith("setReferencePos"):
                     move_task.cancel()
                     putzini.drive.stop()
