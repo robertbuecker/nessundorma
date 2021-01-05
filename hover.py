@@ -420,7 +420,7 @@ class Putzini:
         # delta_angle = int(delta_angle)
         await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
 
-    async def look_at(self, x, y, speed=60, accuracy=2):
+    async def look_at(self, x, y, speed=60, accuracy=4):
         x= int(x) / 100
         y= int(y) / 100
         start = self.nav.get_position()
@@ -432,7 +432,7 @@ class Putzini:
             a += 180
         
         print (f"Look from {start} at {end}: turn to {a}°")
-        await self.turn_absolute(a, np.abs(speed))
+        await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
