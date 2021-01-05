@@ -186,7 +186,7 @@ _mos = np.asarray([
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
 tilt_fig = False
-jitter_limit = 0.001 # in m
+jitter_limit = 0.005 # in m
 
 class MainWindow(QtGui.QWidget):
     def __init__(self):
@@ -230,31 +230,45 @@ class MainWindow(QtGui.QWidget):
         move_command.returnPressed.connect(lambda: self.command('move', move_command.text()))
         self.control_layout.addRow(QtGui.QLabel('Move cmd'), move_command)
                 
-        abs_move = QtGui.QLineEdit('0, 0, 0')
-        abs_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        abs_move = QtGui.QLineEdit('0, 0, 50')
+        abs_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+')))
         abs_move.returnPressed.connect(lambda: self.command('move', f'moveToPos({abs_move.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Abs move'), abs_move)
                 
-        rel_move = QtGui.QLineEdit('0, 0, 0')
-        rel_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        rel_move = QtGui.QLineEdit('0, 0, 50')
+        rel_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+')))
         rel_move.returnPressed.connect(lambda: self.command('move', f'moveByPos({rel_move.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Rel move'), rel_move)
         
-        abs_turn = QtGui.QLineEdit('0, 0')
+        abs_turn = QtGui.QLineEdit('0, 50')
         abs_turn.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
         abs_turn.returnPressed.connect(lambda: self.command('move', f'moveToAngle({abs_turn.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Abs turn'), abs_turn)
         
-        rel_turn = QtGui.QLineEdit('0, 0')
+        rel_turn = QtGui.QLineEdit('0, 50')
         rel_turn.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
         rel_turn.returnPressed.connect(lambda: self.command('move', f'moveByAngle({rel_turn.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Rel turn'), rel_turn)     
         
-        turn_to_arka = pg.QtGui.QPushButton('To Arka')
-        turn_to_arka.clicked.connect(lambda: self.command('move', 'lookAtArka()'))
-        self.control_layout.addRow(turn_to_arka)     
-        turn_to_arka.setMaximumWidth(200)
+        look_at = QtGui.QLineEdit('0, 50')
+        look_at.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        look_at.returnPressed.connect(lambda: self.command('move', f'lookAtPos({look_at.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Look at'), look_at)     
+
+        random_rng = QtGui.QLineEdit('-1000, 1000, -1000, 1000')
+        random_rng.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+,\s*-?\d+')))
+        self.control_layout.addRow(QtGui.QLabel('Rnd Range'), random_rng)     
+                
+        random_bf = QtGui.QLineEdit('20, 15, 50, 1')
+        random_bf.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+,\s*\d+,\s*\d+,\s*\d')))
+        random_bf.returnPressed.connect(lambda: self.command('move', f'moveBackForth({random_bf.text()},{random_rng.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('B-F'), random_bf)     
         
+        random = QtGui.QLineEdit('50')
+        random.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
+        random.returnPressed.connect(lambda: self.command('move', f'moveRandom({random.text()},{random_rng.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Zigzag'), random)   
+                        
         stop = pg.QtGui.QPushButton('STOP')
         stop.clicked.connect(lambda: self.command('move', 'stop()'))
         self.control_layout.addRow(stop)    
@@ -268,8 +282,8 @@ class MainWindow(QtGui.QWidget):
         
         head = pg.SpinBox(value=0)
         # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
-        head.setOpts(bounds=(0,255), suffix='stp', step=1, int=True, compactHeight=False)
-        head.valueChanged.connect(lambda x: self.command('height', int(x)))
+        head.setOpts(bounds=(0,220), suffix='stp', step=1, int=True, compactHeight=False)
+        head.valueChanged.connect(lambda x: self.command('head', int(x)))
         self.control_layout.addRow(QtGui.QLabel('Head'), head)  
                                                         
         color_fg = pg.ColorButton()
@@ -294,6 +308,10 @@ class MainWindow(QtGui.QWidget):
                           
         self.battery_indicator = QtGui.QLineEdit(readOnly=True)
         self.control_layout.addRow(QtGui.QLabel('Battery'), self.battery_indicator)
+        
+        self.last_cmd = QtGui.QTextEdit(readOnly=True, width=10)
+        self.control_layout.addRow(self.last_cmd)        
+        self.last_cmd.resize(QtCore.QSize(4,4))
                                
         self.control_layout.setSizeConstraint(self.control_layout.SetFixedSize)
         self.top_layout.addLayout(self.control_layout, 0, 1)
@@ -318,6 +336,8 @@ class MainWindow(QtGui.QWidget):
         cmd = {kind: value}
         payload = json.dumps(cmd)
         print(payload)
+        # print(self.last_cmd.text())
+        self.last_cmd.setText(payload)
         self.client.m_client.publish('putzini/commands', payload)
         
     @QtCore.pyqtSlot(int)
@@ -348,9 +368,8 @@ class MainWindow(QtGui.QWidget):
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
             self.angle_indicator.setText(f'{angles[0]},{angles[1]},{angles[2]}')
             
-            
             with np.printoptions(precision=2, suppress=True):
-                print(f'New position: {T}, angles (Euler XYZ, deg): {(angles)}')
+                print(f'Pos: {T}, Euler XYZ: {(angles)}')
                             
             if self.update_graph.isChecked() and d_T > jitter_limit:
                 inplane = angles[2]
@@ -365,10 +384,10 @@ class MainWindow(QtGui.QWidget):
                 self.current_point.setData([{'pos': T[:-1]*100, 'data': 1, 'brush':pg.mkBrush(col), 
                                             'symbol': my_rotated_symbol, 'size': 30}], clear=True)    
                 if tilt_fig:
-                    self.tilt_current_point.clear()
-                    self.tilt_current_point.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col), 
-                                                'size': 30}])
-                    self.tilt_all_points.addPoints([{'pos': angles[-1:0:-1]*180/np.pi, 'data': 1, 'brush':pg.mkBrush(col),
+                    # self.tilt_current_point.clear()
+                    self.tilt_current_point.setData([{'pos': angles[:2], 'data': 1, 'brush':pg.mkBrush(col), 
+                                                'size': 30}], clear=True)
+                    self.tilt_all_points.addPoints([{'pos': angles[:2], 'data': 1, 'brush':pg.mkBrush(col),
                                                 'size': 10}])          
                     
                 QtGui.QGuiApplication.processEvents()
