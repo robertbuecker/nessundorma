@@ -250,8 +250,8 @@ class MainWindow(QtGui.QWidget):
         rel_turn.returnPressed.connect(lambda: self.command('move', f'moveByAngle({rel_turn.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Rel turn'), rel_turn)     
         
-        look_at = QtGui.QLineEdit('0, 50')
-        look_at.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*\d+')))
+        look_at = QtGui.QLineEdit('0, 0, 50')
+        look_at.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+')))
         look_at.returnPressed.connect(lambda: self.command('move', f'lookAtPos({look_at.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Look at'), look_at)     
 
@@ -368,8 +368,8 @@ class MainWindow(QtGui.QWidget):
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
             self.angle_indicator.setText(f'{angles[0]},{angles[1]},{angles[2]}')
             
-            with np.printoptions(precision=2, suppress=True):
-                print(f'Pos: {T}, Euler XYZ: {(angles)}')
+            # with np.printoptions(precision=2, suppress=True):
+            #     print(f'Pos: {T}, Euler XYZ: {(angles)}')
                             
             if self.update_graph.isChecked() and d_T > jitter_limit:
                 inplane = angles[2]
