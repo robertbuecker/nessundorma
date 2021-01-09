@@ -274,6 +274,11 @@ class MainWindow(QtGui.QWidget):
         self.control_layout.addRow(stop)    
         stop.setMaximumWidth(200)
         
+        vac = pg.QtGui.QCheckBox('Vacuum Cleaner')
+        vac.stateChanged.connect(lambda state: self.command('vacuum', '1' if int(state)==2 else '0'))
+        vac.setChecked(False)
+        self.control_layout.addRow(vac)
+        
         height = pg.SpinBox(value=0)
         # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
         height.setOpts(bounds=(0,100), suffix='mm', step=1, int=True, compactHeight=False)
