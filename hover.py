@@ -459,6 +459,17 @@ class Putzini:
             
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
+
+    async def move_relative(self, x, y, speed=60, accuracy=10):
+        x = int(x)/100
+        y = int(y)/100
+        cur_pos = self.nav.get_position()
+        sa, ca = np.sin(self.nav.get_angle()*np.pi/180), np.cos(self.nav.get_angle()*np.pi/180)
+        delta = np.matmul([[ca, -sa], [sa, ca]], [x, y])
+        final_pos = cur_pos + delta
+        print(f'Relative move from {cur_pos} by [{x}, {y}] w.r.t. Putzini.')
+        print(f'Results in absolute move by {delta} to {final_pos}.')
+        await self.move_absolute(final_pos[0]*100, final_pos[1]*100, speed=speed, accuracy=accuracy)
             
     async def move_random(self, speed=60, xmin=0, xmax=0, ymin=0, ymax=0):
         while True:
@@ -536,6 +547,10 @@ async def parse_json_commands(messages, putzini):
                 h = int(cmd["head"])
                 putzini.lamp.set_head(h)
                 print(f"setting head to: {h}")
+            if "vacuum" in cmd and cmd["vacuum"] != None:
+                v = int(cmd["vacuum"])
+                putzini.neck.set_vacuum(v)
+                print(f"switching vacuum cleaner {'on' if v==1 else 'off'}")
             if "move" in cmd and cmd["move"] != None:
                 if cmd["move"] == "stop()":
                     move_task.cancel()
@@ -545,6 +560,13 @@ async def parse_json_commands(messages, putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     move_task = asyncio.ensure_future(putzini.move_absolute(pp[0],pp[1],pp[2]))
+                elif cmd["move"].startswith("moveByPos"):
+                    pp = parse_command("moveByPos", 3, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    # await putzini.move_relative(*pp)
+                    move_task = asyncio.ensure_future(putzini.move_relative(pp[0],pp[1],pp[2]))      
+                    print(pp)
                 elif cmd["move"].startswith("moveToAngle"):
                     pp = parse_command("moveToAngle", 2, cmd["move"])
                     print(pp)
