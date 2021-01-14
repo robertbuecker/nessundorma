@@ -230,12 +230,12 @@ class MainWindow(QtGui.QWidget):
         move_command.returnPressed.connect(lambda: self.command('move', move_command.text()))
         self.control_layout.addRow(QtGui.QLabel('Move cmd'), move_command)
                 
-        abs_move = QtGui.QLineEdit('0, 0, 50')
+        abs_move = QtGui.QLineEdit('0, 0, 50, 10')
         abs_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+,\s*\d+')))
         abs_move.returnPressed.connect(lambda: self.command('move', f'moveToPos({abs_move.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Abs move'), abs_move)
                 
-        rel_move = QtGui.QLineEdit('0, 0, 50')
+        rel_move = QtGui.QLineEdit('0, 0, 50, 10')
         rel_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+,\s*\d+')))
         rel_move.returnPressed.connect(lambda: self.command('move', f'moveByPos({rel_move.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Rel move'), rel_move)
