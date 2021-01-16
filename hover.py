@@ -556,16 +556,16 @@ async def parse_json_commands(messages, putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                 elif cmd["move"].startswith("moveToPos"):
-                    pp = parse_command("moveToPos", 3, cmd["move"])
+                    pp = parse_command("moveToPos", 4, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
-                    move_task = asyncio.ensure_future(putzini.move_absolute(pp[0],pp[1],pp[2]))
+                    move_task = asyncio.ensure_future(putzini.move_absolute(*pp))
                 elif cmd["move"].startswith("moveByPos"):
-                    pp = parse_command("moveByPos", 3, cmd["move"])
+                    pp = parse_command("moveByPos", 4, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
                     # await putzini.move_relative(*pp)
-                    move_task = asyncio.ensure_future(putzini.move_relative(pp[0],pp[1],pp[2]))      
+                    move_task = asyncio.ensure_future(putzini.move_relative(*pp))      
                     print(pp)
                 elif cmd["move"].startswith("moveToAngle"):
                     pp = parse_command("moveToAngle", 2, cmd["move"])
