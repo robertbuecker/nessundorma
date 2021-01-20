@@ -37,6 +37,7 @@ import yaml
 from sys import argv
 import os
 import time
+import simpleaudio as sa
 
 class PutziniLamp:
     def __init__(self):
@@ -133,6 +134,7 @@ class PutziniDrive:
         self.finished = self.loop.create_future()
         self.finished.set_result(None)
         self.period = 50e-3
+        self.wheel_balance = 1.03 # >1 -> make it move rather to the right
 
     async def connect(self, url='/dev/serial/by-path/platform-70090000.xusb-usb-0:2.4:1.0-port0', baudrate=38400):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)       
@@ -185,7 +187,10 @@ class PutziniDrive:
             # set
             self.moving = speed_r > 0 or speed_l > 0
             
-            #speed_l = int(speed_l * 1.05)
+            # WHEEL FUDGE FACTOR
+            # for motor imbalance. Note that "r" means the LEFT wheel seen from behind!
+            speed_l = int(speed_l * self.wheel_balance)
+            speed_r = int(speed_r * 1/self.wheel_balance)
         
             frame = struct.pack('HhhH',PutziniDrive.START_FRAME, speed_r, speed_l, (PutziniDrive.START_FRAME ^ speed_r ^ speed_l) & 0xffff)
             self.writer.write(frame)
@@ -551,6 +556,15 @@ async def parse_json_commands(messages, putzini):
                 v = int(cmd["vacuum"])
                 putzini.neck.set_vacuum(v)
                 print(f"switching vacuum cleaner {'on' if v==1 else 'off'}")
+            if 'audio' in cmd and cmd["audio"] != None:
+                acmd = cmd["audio"]
+                fn = os.path.join('/home/putzini/audio', acmd['file'])
+                print('Trying to play audio file', fn)
+                if 'loop' in acmd and not acmd['loop'] == 0:
+                    #TODO DO THIS
+                    print('LOOP NOT IMPLEMENTED YET')
+                wave_obj = sa.WaveObject.from_wave_file(fn)
+                play_obj = wave_obj.play()
             if "move" in cmd and cmd["move"] != None:
                 if cmd["move"] == "stop()":
                     move_task.cancel()
