@@ -563,6 +563,7 @@ async def parse_json_commands(messages, putzini):
                 if 'loop' in acmd and not acmd['loop'] == 0:
                     #TODO DO THIS
                     print('LOOP NOT IMPLEMENTED YET')
+                #TODO this is obviously too simple... I guess a proper audio class would be good
                 wave_obj = sa.WaveObject.from_wave_file(fn)
                 play_obj = wave_obj.play()
             if "move" in cmd and cmd["move"] != None:
