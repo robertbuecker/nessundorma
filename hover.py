@@ -363,7 +363,7 @@ class Putzini:
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
         
-        self.putz_per_degree = 20
+        self.putz_per_degree = 2*20
         self.putz_per_degree_array = np.ones(10)*self.putz_per_degree
         
         self.putz_per_meter = 17241*0.9
@@ -520,6 +520,11 @@ class Putzini:
             await self.drive.finished
             curr_pos_linear += new_d
 
+    async def turn_forever(self, speed=60, angle=1000000):
+        # TODO no new coordinates are sent
+        self.drive.turn(angle*self.putz_per_degree, speed=speed)
+        # await self.drive.finished
+
 async def call_func_with_msg(messages, func):
     async for message in messages:
         var = message.payload.decode("utf-8")
@@ -612,7 +617,12 @@ async def parse_json_commands(messages, putzini):
                     pp = parse_command("moveBackForth", 8, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
-                    move_task = asyncio.ensure_future(putzini.move_back_forth(*pp))                                                 
+                    move_task = asyncio.ensure_future(putzini.move_back_forth(*pp))                        
+                elif cmd["move"].startswith("turnForever"):
+                    pp = parse_command("turnForever", 1, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    move_task = asyncio.ensure_future(putzini.turn_forever(*pp))                                                        
                 elif cmd["move"].startswith("setReferencePos"):
                     move_task.cancel()
                     putzini.drive.stop()
