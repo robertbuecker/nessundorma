@@ -300,7 +300,15 @@ class MainWindow(QtGui.QWidget):
         color_bg.sigColorChanging.connect(lambda ctrl: self.command('lamp',
             {'back': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue()}}))
         self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
-                 
+        
+        audio_1 = QtGui.QLineEdit('New Peeps/curious_1.wav')
+        audio_1.returnPressed.connect(lambda: self.command('audio', {'file': audio_1.text(), 'loop': 0}))
+        self.control_layout.addRow(QtGui.QLabel('Audio once'), audio_1)
+                
+        audio_loop = QtGui.QLineEdit('New Peeps/curious_1.wav')
+        audio_loop.returnPressed.connect(lambda: self.command('audio', {'file': audio_1.text(), 'loop': 5}))
+        self.control_layout.addRow(QtGui.QLabel('Audio loop'), audio_loop)
+                         
         # indicators
         self.xpos_indicator = QtGui.QLineEdit(readOnly=True)
         self.control_layout.addRow(QtGui.QLabel('X Position'), self.xpos_indicator)
