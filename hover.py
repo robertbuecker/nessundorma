@@ -38,7 +38,25 @@ from sys import argv
 import os
 import time
 import simpleaudio as sa
+# import skimage.io
+# import skimage.draw
 
+import numpy as np
+
+
+class PutziniKeepoutArea:
+    def __init__(self, keepout_img):
+        # the image should have 1px per mm
+        self.img = skimage.io.imread(keepout_img)
+        self.ref = self.img.shape[0]/2, self.img.shape[1]/2
+        
+    def _transform_to_image_system(self, x, y):
+        pass
+        
+    def is_line_keepout(self, x1, y1, x2, y2):
+        r, c = skimage.draw.line(int(x1), int(y1), int(x2), int(y2))
+        return np.sum(self.img[r, c] != np.zeros(4)) > 0
+    
 class PutziniLamp:
     def __init__(self):
         self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
@@ -420,10 +438,14 @@ class Putzini:
             self.drive.turn(distance, speed)
             await asyncio.sleep(20e-3)       
 
+        # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
+        
+
     async def turn_relative(self, delta_angle, speed=60, accuracy=4, slow_angle=20):
 
         # delta_angle = int(delta_angle)
         await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
 
     async def look_at(self, x, y, speed=60, accuracy=4):
         x= int(x) / 100
@@ -438,6 +460,8 @@ class Putzini:
         
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
+        
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
@@ -464,6 +488,8 @@ class Putzini:
             
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
+
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
