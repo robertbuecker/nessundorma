@@ -98,82 +98,10 @@ for st in steps.to_dict(orient='records'):
     stepname = st['name']
     log = lambda msg: print(f'In step {stepname}: {msg}', file=stderr)
 
-    # PUTZINI VALIDATION ---
+    # PUTZINI MOVE VALIDATION --- (historical)
     pm = str(st['parameter.putzini.move'])
     pm_prev = steplist[-1]['parameter.putzini.move'] if steplist else None
 
-    if pm.startswith('moveToPos'):
-        # just intercept to update current position and validate expression
-        pp = parse_command('moveToPos', 3, pm)
-        if pp is None:
-            log(f'Non-compliant command: {pm}')
-            
-    elif pm.startswith('moveToAngle'):
-        # just intercept to update current position and validate expression
-        pp = parse_command('moveToAngle', 2, pm)
-        if pp is None:
-            log(f'Non-compliant command: {pm}')
-    
-    elif pm.startswith('moveByPos'):
-        pp = parse_command('moveByPos', 3, pm)
-        if pp is None:
-            log(f'Non-compliant command: {pm}')
-
-    elif pm.startswith('moveByAngle'):
-        pp = parse_command('moveByAngle', 2, pm)
-        if pp is None:
-            log(f'Non-compliant command: {pm}')
-            
-    elif pm.startswith('lookAtArka'):
-        # TODO in software?
-        pp = parse_command('lookAtArka', 0, pm)
-        if pp is None:
-            log(f'Non-compliant command: {pm}')
-            
-    elif pm.startswith('moveRandom'):
-        # unroll random motion into additional steps
-        try:
-            xmin, xmax, ymin, ymax, speed, putzen = parse_command('moveRandom', 6, pm)
-        except Exception as err:
-            log(f'Non-compliant command: {pm}')
-
-
-                
-        if False: # unroll random move in pre-processing?
-            
-            pp_prev = parse_command('moveToPos', 3, pm_prev)
-
-            if (pp_prev is None) or (steplist[-1]['terminationCondition'] not in ['WaitForArka', 'WaitForPutzini']):
-                log(f'Random Putzini move requires defined position in previous step. Omitting random move.')  
-                continue 
-                     
-            # TODO this needs more work.
-            prev_pos = parse_command('moveToPos', 3, pm_prev)
-            skip_append = True # we have to append the random steps manually
-            
-            sfac = 1 # TODO TO BE FOUND EMPIRICALLY
-            n_steps = sfac * st['duration'] * speed
-            for ii in range(n_steps):
-                x = np.random.randint(xmin, xmax)
-                y = np.random.randint(ymin, ymax)
-                if ii == 0:
-                    rand_step = deepcopy(st) # don't mess with the iterator
-                else:
-                    # for the extra steps we don't want the other parameters to repeat
-                    rand_step = {k: None for k in st.keys()}
-                rand_step['name'] = stepname + f'_{ii:03d}'
-                #TODO the angle here is nonsensical until there is a moveToPosXY command
-                rand_step['parameter.putzini.move'] = f'moveToPos({x},{y},{speed})'
-                #TODO here the delta duration will still screw things up -> refactor into preprocessor?
-                rand_step['duration'] = st['duration']/n_steps
-                steplist.append(rand_step)
-                
-    elif pm == 'nan':
-        pass
-    
-    else:
-        log(f'Unknown Putzini move command: {pm}')
-        
     # ARKA VALIDATION ---
     # works a bit different from Putzini, as Arka has its paramters as hierarchy.
     # does not quite work yet, unfortunately, as it's tricky to reconstruct a full
