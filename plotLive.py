@@ -302,11 +302,15 @@ class MainWindow(QtGui.QWidget):
         self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
         
         audio_1 = QtGui.QLineEdit('New Peeps/curious_1.wav')
-        audio_1.returnPressed.connect(lambda: self.command('audio', {'file': audio_1.text(), 'loop': 0}))
+        audio_1.returnPressed.connect(lambda: self.command('audio', {'folder': audio_1.text().rsplit('/', 1)[0], 
+                                                                     'file': audio_1.text().rsplit('/', 1)[1], 'loop': 0, 'vol': 10}
+                                                           if audio_1.text() else 'stop'))
         self.control_layout.addRow(QtGui.QLabel('Audio once'), audio_1)
                 
         audio_loop = QtGui.QLineEdit('New Peeps/curious_1.wav')
-        audio_loop.returnPressed.connect(lambda: self.command('audio', {'file': audio_1.text(), 'loop': 5}))
+        audio_loop.returnPressed.connect(lambda: self.command('audio', {'folder': audio_loop.text().rsplit('/', 1)[0], 
+                                                                     'file': audio_loop.text().rsplit('/', 1)[1], 'loop': 1, 'vol': 10}
+                                                              if audio_loop.text() else 'stop'))
         self.control_layout.addRow(QtGui.QLabel('Audio loop'), audio_loop)
                          
         # indicators
