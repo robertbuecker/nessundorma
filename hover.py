@@ -38,6 +38,7 @@ from sys import argv
 import os
 import time
 import simpleaudio as sa
+import subprocess
 # import skimage.io
 # import skimage.draw
 
@@ -83,6 +84,7 @@ class PutziniLamp:
             self.l["back"] = l["back"]
     
     def set_head(self, h):
+        print('Trying to set head to', h)
         self.h = int(h)
 
 
@@ -152,7 +154,7 @@ class PutziniDrive:
         self.finished = self.loop.create_future()
         self.finished.set_result(None)
         self.period = 50e-3
-        self.wheel_balance = 1.03 # >1 -> make it move rather to the right
+        self.wheel_balance = 1.05 # >1 -> make it move rather to the right
 
     async def connect(self, url='/dev/serial/by-path/platform-70090000.xusb-usb-0:2.4:1.0-port0', baudrate=38400):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)       
@@ -335,11 +337,14 @@ class PutziniNav:
                 alpha = xform.as_euler('XYZ')*180/np.pi
 
                 if 'out-of-plane-limit' in self.opts and max(alpha[:2]) > float(self.opts['out-of-plane-limit']):
-                    print(f'WARNING: out of plane angles {alpha[:2]} exceed limit.')
+                    wstr = f'WARNING: out of plane angles {alpha[:2]} exceed limit.'
+                    # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': wstr}),qos=0))  
+                    print(wstr)
                 else:
                     self.position = self.RT_rp[:3,-1]
                     self.alpha = alpha
                     self.timestamp = time.time()
+                    # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': 'OK'}),qos=0))  
 
                 asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
                 
@@ -374,12 +379,54 @@ class PutziniNav:
         with open('putziniNav.yml', 'w') as fh:
             yaml.dump(self.opts, fh)
 
+class PutziniSound:
+    def __init__(self, dev_name):
+        self.wave = None
+        self.play_obj = None
+        try:
+            # Activate the proper sound device
+            print('Activating sound device: ', dev_name)
+            assert subprocess.run(['pactl', 'set-default-sink', 
+            dev_name]).returncode == 0
+        except:
+            print('Could not initialize sound device, sorry.')
+
+    async def play(self, fn, loop=False, vol=None):
+        if self.play_obj is not None and self.play_obj.is_playing():
+            self.play_obj.stop()
+            self.play_obj = None
+            self.volume = vol
+
+        print(f'Loading wave file {fn}...')
+        self.wave = sa.WaveObject.from_wave_file(fn)
+        self.play_obj = self.wave.play()
+        self.fn = ''
+
+        while True:
+            if (self.play_obj is not None) and self.play_obj.is_playing():
+                await asyncio.sleep(0.5)
+            elif (self.play_obj is not None) and loop: 
+                print(f'Restarting wave file {fn}.')
+                self.play_obj = self.wave.play()
+            else:
+                print(f'Stopped wave file {fn}.')
+                break
+
+    def stop(self):
+        if self.play_obj is not None:
+            self.play_obj.stop()
+            self.play_obj = None
+
+        self.wave = None
+
 class Putzini:
     def __init__(self, mqtt_client):
         self.drive = PutziniDrive(mqtt_client)
         self.nav = PutziniNav(mqtt_client)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
+        self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
+        self.mqtt_client = mqtt_client
         
         self.putz_per_degree = 50
         self.putz_per_degree_array = np.ones(10)*self.putz_per_degree
@@ -416,7 +463,7 @@ class Putzini:
                 fudge = max(0.05,fudge*0.7)
             prev_a = a
 
-            print (f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
+            # print(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
 
             if abs(a) < slow_angle:
                 speed = min(speed,50)
@@ -445,7 +492,7 @@ class Putzini:
 
         # delta_angle = int(delta_angle)
         await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def look_at(self, x, y, speed=60, accuracy=4):
         x= int(x) / 100
@@ -460,8 +507,8 @@ class Putzini:
         
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
-        
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
+
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
@@ -489,7 +536,7 @@ class Putzini:
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
 
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
@@ -516,7 +563,7 @@ class Putzini:
         speed = np.abs(int(speed))
         if (xmin is not None and (final_pos[0] < xmin)) or (xmax is not None and (final_pos[0] > xmax)) \
                 or (ymin is not None and (final_pos[1] < ymin)) or (ymax is not None and (final_pos[1] > ymax)):
-            raise ValueError('Final position of straight move outside bounds')
+            raise ValueError(f'Final position {final_pos} of straight move would be outside bounds')
         print(f'Straight move by {distance} m = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
         self.drive.move(dist_putz, speed=-speed)
         await self.drive.finished
@@ -539,17 +586,22 @@ class Putzini:
                 new_d = np.random.randint(1, range//2+1-curr_pos_linear) if random else range//2
             try:
                 await self.move_straight(distance=new_d, speed=speed, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-            except ValueError:
+            except ValueError as err:
                 self.drive.stop()
-                print('Resetting Putzini to initial position.')
-                await self.move_absolute(100*start_pos[0], 100*start_pos[1], speed=speed)
+                print('Error during straight section in back-forth:\n', err)
+                print('Abandoning.')
+                break
+                # print('Resetting Putzini to initial position.')
+                # await self.move_absolute(100*start_pos[0], 100*start_pos[1], speed=speed)
+                # print('Moved back.')
             await self.drive.finished
             curr_pos_linear += new_d
 
     async def turn_forever(self, angle=1000000, speed=60):
         # TODO no new coordinates are sent
         self.drive.turn(angle*self.putz_per_degree, speed=speed)
-        # await self.drive.finished
+        await self.drive.finished
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))
 
 async def call_func_with_msg(messages, func):
     async for message in messages:
@@ -569,34 +621,50 @@ def parse_command(fun, npar, com):
     return None if parsed is None else tuple(int(p) for p in parsed.groups())  
 
 
-async def parse_json_commands(messages, putzini):
+async def parse_json_commands(messages, putzini: Putzini):
     move_task = asyncio.Future()
     async for message in messages:
+
         try:
-            cmd = json.loads(message.payload.decode("utf-8"))
-            print (f"cmd: {cmd}")
+            cmd = json.loads(message.payload.decode("utf-8"))                    
+        except Exception as e:
+            print(e)
+            print(f"Error parsing {message.payload.decode('utf-8')}")
+            cmd = {}
+
+        try:            
+            print (f"Executing: {cmd}")
             if "lamp" in cmd and cmd["lamp"] != None:
                 l = cmd["lamp"]
                 putzini.lamp.set_lamp(l)
                 print(f"setting lampe to: {l}")
+
             if "head" in cmd and cmd["head"] != None:
-                h = int(cmd["head"])
-                putzini.lamp.set_head(h)
-                print(f"setting head to: {h}")
+                try:
+                    h = int(cmd["head"])                   
+                except ValueError as err:
+                    if isinstance(cmd['head'], str):
+                        print('Received Head Command:', cmd['head'])
+                    else:
+                        raise err
+                else:
+                    putzini.lamp.set_head(h)
+                    print(f"setting head to: {h}") 
+
             if "vacuum" in cmd and cmd["vacuum"] != None:
                 v = int(cmd["vacuum"])
                 putzini.neck.set_vacuum(v)
                 print(f"switching vacuum cleaner {'on' if v==1 else 'off'}")
+
             if 'audio' in cmd and cmd["audio"] != None:
                 acmd = cmd["audio"]
-                fn = os.path.join('/home/putzini/audio', acmd['file'])
-                print('Trying to play audio file', fn)
-                if 'loop' in acmd and not acmd['loop'] == 0:
-                    #TODO DO THIS
-                    print('LOOP NOT IMPLEMENTED YET')
-                #TODO this is obviously too simple... I guess a proper audio class would be good
-                wave_obj = sa.WaveObject.from_wave_file(fn)
-                play_obj = wave_obj.play()
+                if isinstance(acmd, str) and (acmd.lower() == 'stop'):
+                    putzini.sound.stop()
+                else:
+                    fn = os.path.join('/home/putzini/audio', acmd['folder'], acmd['file'])
+                    print('Trying to play audio file', fn, 'at volume', acmd['vol'], 'as', ('loop' if acmd['loop'] else 'one-shot'))
+                    asyncio.ensure_future(putzini.sound.play(fn, bool(acmd['loop'] ), acmd['vol']))
+
             if "move" in cmd and cmd["move"] != None:
                 if cmd["move"] == "stop()":
                     move_task.cancel()
@@ -656,10 +724,11 @@ async def parse_json_commands(messages, putzini):
                 elif cmd["move"].startswith("clearReferencePos"):
                     move_task.cancel()
                     putzini.drive.stop()
-                    putzini.nav.set_reference_position(clear=True)                                
+                    putzini.nav.set_reference_position(clear=True)           
+
         except Exception as e:
             print(e)
-            print(f"error parsing {message.payload.decode('utf-8')}")
+            print(f"Error executing {message.payload.decode('utf-8')}")
 
 
 async def main():
