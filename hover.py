@@ -44,6 +44,29 @@ import subprocess
 
 import numpy as np
 
+class PutziniState:
+    def __init__(self, mqtt_client):
+        self.mqtt_client = mqtt_client
+        self.pos = np.zeros(3)
+        self.alpha = 0
+        self.action = 'Idle'
+    
+    def set_active(self):
+        self.action = 'Moving'
+        self.publish()
+        
+    def set_idle(self,bla=""):
+        self.action = "Idle"
+        self.publish()
+        
+    def set_position_with_alpha(self, pos, alpha):
+        self.pos = pos
+        self.alpha = alpha 
+        self.publish()
+        
+    def publish(self):
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[2]}), qos=0))  
+
 
 class PutziniKeepoutArea:
     def __init__(self, keepout_img):
@@ -259,7 +282,8 @@ class PutziniDrive:
 
 
 class PutziniNav:
-    def __init__(self, mqtt_client):
+    def __init__(self, mqtt_client, putzini_state):
+        self.state = putzini_state
         self.mqtt_client = mqtt_client
         self.detected = 0
         if os.path.exists('putziniNav.yml'):
@@ -306,7 +330,7 @@ class PutziniNav:
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
-        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
+        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map_rfa.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','16', stdout=asyncio.subprocess.PIPE)
         asyncio.ensure_future(self._reader_task())
 
     async def _reader_task(self):
@@ -346,9 +370,9 @@ class PutziniNav:
                     self.timestamp = time.time()
                     # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': 'OK'}),qos=0))  
 
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))
+                self.state.set_position_with_alpha(self.position, self.alpha)
                 
-
     # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
 
     def get_angle(self):
@@ -363,12 +387,15 @@ class PutziniNav:
     def get_position(self):
         return self.position[:2]
 
-    def set_reference_position(self, clear=False):    
+    def set_reference_position(self, clear=False, x=0, y=0):    
         if clear:
             self.opts['marker-system'] = {'x': 0, 'y': 0, 
                 'z': 0, 'angle': 0}
         else:
-            RT_calib = np.matmul(np.linalg.inv(self.RT_pm), np.diag([1, -1, -1, 1]))
+            RT_pm_moved = self.RT_pm
+            RT_pm_moved[:3,-1] = RT_pm_moved[:3,-1] + np.array([x/100,y/100,0])
+        
+            RT_calib = np.matmul(np.linalg.inv(RT_pm_moved), np.diag([1, -1, -1, 1]))
             angles = transform.Rotation.from_dcm(RT_calib[:3,:3]).as_euler('XYZ')*180/np.pi
 
             self.opts['marker-system'] = {'x': float(RT_calib[0,-1]), 'y': float(RT_calib[1,-1]), 
@@ -421,8 +448,9 @@ class PutziniSound:
 
 class Putzini:
     def __init__(self, mqtt_client):
+        self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.nav = PutziniNav(mqtt_client)
+        self.nav = PutziniNav(mqtt_client, self.state)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
         self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
@@ -485,14 +513,13 @@ class Putzini:
             self.drive.turn(distance, speed)
             await asyncio.sleep(20e-3)       
 
-        # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",{'action': 'IDLE'}, qos=0))  
+        
         
 
     async def turn_relative(self, delta_angle, speed=60, accuracy=4, slow_angle=20):
 
         # delta_angle = int(delta_angle)
         await self.turn_absolute(delta_angle + self.nav.get_angle(), speed=speed, accuracy=accuracy, slow_angle=slow_angle)
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def look_at(self, x, y, speed=60, accuracy=4):
         x= int(x) / 100
@@ -508,7 +535,6 @@ class Putzini:
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
@@ -536,7 +562,6 @@ class Putzini:
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
 
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))  
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
@@ -601,7 +626,6 @@ class Putzini:
         # TODO no new coordinates are sent
         self.drive.turn(angle*self.putz_per_degree, speed=speed)
         await self.drive.finished
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'action': 'IDLE'}), qos=0))
 
 async def call_func_with_msg(messages, func):
     async for message in messages:
@@ -673,12 +697,14 @@ async def parse_json_commands(messages, putzini: Putzini):
                     pp = parse_command("moveToPos", 4, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_absolute(*pp))
                 elif cmd["move"].startswith("moveByPos"):
                     pp = parse_command("moveByPos", 4, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
                     # await putzini.move_relative(*pp)
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_relative(*pp))      
                     print(pp)
                 elif cmd["move"].startswith("moveToAngle"):
@@ -686,45 +712,55 @@ async def parse_json_commands(messages, putzini: Putzini):
                     print(pp)
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.turn_absolute(pp[0],pp[1]))
                 elif cmd["move"].startswith("moveByAngle"):
                     pp = parse_command("moveByAngle", 2, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.turn_relative(pp[0],pp[1]))                
                 elif cmd["move"].startswith("lookAtPos"):
                     pp = parse_command("lookAtPos", 3, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.look_at(pp[0],pp[1],pp[2]))                            
                 elif cmd["move"].startswith("moveRandom"):
                     pp = parse_command("moveRandom", 5, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_random(*pp))
                 elif cmd["move"].startswith("moveStraight"):
                     pp = parse_command("moveStraight", 2, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_straight(*pp))     
                 elif cmd["move"].startswith("moveBackForth"):
                     pp = parse_command("moveBackForth", 8, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_back_forth(*pp))                        
                 elif cmd["move"].startswith("turnForever"):
                     pp = parse_command("turnForever", 2, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.turn_forever(*pp))                                                        
                 elif cmd["move"].startswith("setReferencePos"):
+                    pp = parse_command("setReferencePos", 2, cmd["move"])
                     move_task.cancel()
                     putzini.drive.stop()
-                    putzini.nav.set_reference_position(clear=False)         
+                    putzini.nav.set_reference_position(False, pp[0], pp[1])         
                 elif cmd["move"].startswith("clearReferencePos"):
                     move_task.cancel()
                     putzini.drive.stop()
-                    putzini.nav.set_reference_position(clear=True)           
+                    putzini.nav.set_reference_position(clear=True)
+                
+                move_task.add_done_callback(putzini.state.set_idle)       
 
         except Exception as e:
             print(e)
@@ -733,7 +769,7 @@ async def parse_json_commands(messages, putzini: Putzini):
 
 async def main():
 
-    client = mqtt.Client("localhost")
+    client = mqtt.Client("172.31.1.150")
     putzini = Putzini(client)
 
     
