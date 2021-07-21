@@ -44,6 +44,23 @@ import subprocess
 
 import numpy as np
 
+from scipy.spatial.distance import euclidean
+import time
+from scipy.optimize import minimize
+
+def pos_solve(dist, anchors, x0=(0,0)):
+    
+    def error(x, dist, anchors):
+        dist_err = ((anchors - x.reshape(1,2))**2).sum(axis=1)**.5 - dist
+        # print((dist_err**2/dist**2))
+        f = (dist_err**2/dist).sum()
+        return f
+
+    if any(x0==0):
+        x0 = anchors.mean(axis=0)
+        
+    return minimize(error, x0, args=(dist, anchors), method='BFGS').x
+
 class PutziniState:
     def __init__(self, mqtt_client):
         self.mqtt_client = mqtt_client
@@ -281,6 +298,119 @@ class PutziniDrive:
             self.finished = loop.create_future()
 
 
+class PutziniNav2:
+    # Anchor-based system
+    
+    def __init__(self, mqtt_client, putzini_state):
+        # print('Position class started')
+        # asyncio.ensure_future(self.connect())
+        self.initialized = False
+        self.mqtt_client = mqtt_client
+        self.state = putzini_state
+        
+        self.ids = {'anchor_1': 'B4DE',
+                    'anchor_2': 'B4D3',
+                    'anchor_3': 'B4D9',
+                    'tag': 'B521'}
+        
+        self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
+        
+        self.anchor_pos = np.array([[0,0],
+                           [575,0],
+                           [565,710]])
+ 
+        self.distances = np.array([0,0,0])
+        self.distances_sig = np.array([0,0,0])
+        
+        self._distance_buffer = []
+        
+        self.position = np.array([0,0,0])    
+    
+    async def connect(self, 
+                        url='/dev/ttyUSB3', baudrate=512000):
+        self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
+        
+        print('Master connected.')     
+        asyncio.ensure_future(self._reader_task())
+        await self.start_ranging()
+        # asyncio.ensure_future(self._writer_task())
+            
+    async def start_ranging(self):
+        await self.stop_ranging()
+        self.writer.write(b'$PL,\r\n')
+        # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
+        config_string = f'$PK,{self.ids["tag"]},0,3,{self.ids["anchor_1"]},{self.ids["anchor_2"]},{self.ids["anchor_3"]},\r\n'
+        config_string = config_string.encode('utf-8')
+        # print(config_string)
+        self.writer.write(config_string)
+        self.writer.write(b'$PS,\r\n')
+        
+    async def stop_ranging(self):
+        self.writer.write(b'$PG,')
+            
+    async def _reader_task(self):
+        msg=b''
+        ii = 0
+        while True:
+            msg = await self.reader.readline()
+            # msg = msg.strip().decode()
+            # print(msg)
+            try:
+                cmd, par = msg.strip().split(b',',1)
+            except:
+                print(f'Failing to split message: {msg}')
+                continue
+            # cmd, par = cmd.decode(), par.decode()
+            # print(cmd, par)
+            if cmd == b'$PX':
+                print(f'Ping received: {par}')
+                
+            elif cmd == b'$PD':
+                ii += 1
+                # await asyncio.sleep(0.1)
+                new_dist = np.nan*np.ones(3)
+                try:
+                    # print(f'Distances received: {par.split(b",")}')
+                    tag_id, a1_dist, a2_dist, a3_dist, udata, _ = par.split(b',',5)
+                    d1, d2, d3 = int(a1_dist, 16), int(a2_dist, 16), int(a3_dist, 16)
+                    # print(f'Distances to {tag_id} are {d1}, {d2}, {d3} cm.')
+                    if d1 == 0:
+                        # print(f'Could not get distance from {tag_id}.')
+                        pass
+                    else:
+                        new_dist[self.anchor_idx[tag_id]] = d1
+                    self._distance_buffer.append(new_dist)
+                except:
+                    print(f'Could not decode distance message: {par}')
+                    pass
+                                            
+                if ii % 20:
+                    continue
+                        
+                self.distances = np.nanmean(np.stack(self._distance_buffer), axis=0)
+                self.distances_sig = np.nanstd(np.stack(self._distance_buffer), axis=0)
+                
+                # print(self.distances)
+                # print(self.distances_sig)
+                self._distance_buffer = []
+                # continue
+                t0 = time.time()
+                self.position = pos_solve(self.distances, self.anchor_pos, self.position)
+                print(f'd = {self.distances.round(1)}; x = {self.position.round(1)}; t = {(time.time()-t0)*1000:.0f}')
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/position", f'd = {self.distances.round(1)}; x = {self.position.round(1)}', qos=0))
+                # if not (ii % 150):                    
+                #     self.writer.write(b'$PI,B521,FF,20,30,\r\n')
+                
+            elif cmd == b'$PS':
+                print(f'Ranging started.')
+                
+            elif cmd == b'$PG':
+                print(f'Ranging stopped.')
+                
+            elif cmd == b'$PW':
+                print(f'Configuration received: {par}')
+
+
 class PutziniNav:
     def __init__(self, mqtt_client, putzini_state):
         self.state = putzini_state
@@ -330,8 +460,8 @@ class PutziniNav:
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
-        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map_rfa.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','16', stdout=asyncio.subprocess.PIPE)
-        asyncio.ensure_future(self._reader_task())
+        # self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map_rfa.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','16', stdout=asyncio.subprocess.PIPE)
+        # asyncio.ensure_future(self._reader_task())
 
     async def _reader_task(self):
         while True:
@@ -451,6 +581,7 @@ class Putzini:
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
         self.nav = PutziniNav(mqtt_client, self.state)
+        self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
         self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
@@ -466,8 +597,10 @@ class Putzini:
         n = asyncio.ensure_future(self.nav.start())
         l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
+        n2 = asyncio.ensure_future(self.nav2.connect())
+        # asyncio.ensure_future(self.nav2.start_ranging())
         
-        await asyncio.gather(d, n, l, m)
+        await asyncio.gather(d, n, l, m, n2)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30):
         angle = int(angle)
