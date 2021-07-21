@@ -128,6 +128,7 @@ class PutziniNeckAndVacuum:
   
     async def connect(self, url="/dev/serial/by-path/platform-70090000.xusb-usb-0:2.1:1.0-port0", baudrate=115200):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)
+        self.set_aux(0)
 
     def move(self, steps , speed = 127):
         self.speed = speed
@@ -395,7 +396,7 @@ class PutziniNav2:
                 self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
-            print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
+            # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
             # dirty fix: just inverting in-plane angle for now
             c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
             self.RT_rp = np.array([[c,-s,0,self.position[0]], 
@@ -599,6 +600,7 @@ class PutziniSound:
     def __init__(self, dev_name):
         self.wave = None
         self.play_obj = None
+        self.dev = dev_name
         try:
             # Activate the proper sound device
             print('Activating sound device: ', dev_name)
@@ -611,9 +613,9 @@ class PutziniSound:
         if self.play_obj is not None and self.play_obj.is_playing():
             self.play_obj.stop()
             self.play_obj = None
-            self.volume = vol
 
         print(f'Loading wave file {fn}...')
+        assert subprocess.run(['pactl', 'set-sink-volume', self.dev, f'{int(vol)}%']).returncode == 0            
         self.wave = sa.WaveObject.from_wave_file(fn)
         self.play_obj = self.wave.play()
         self.fn = ''
@@ -642,7 +644,6 @@ class Putzini:
         self.nav = PutziniNav2(mqtt_client, self.state)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
-        self.lamp = None
         self.neck = PutziniNeckAndVacuum()
         self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
         self.mqtt_client = mqtt_client
@@ -656,7 +657,6 @@ class Putzini:
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
         # l = asyncio.ensure_future(self.lamp.connect())
-        l = None
         m = asyncio.ensure_future(self.neck.connect())
         
         # await asyncio.gather(d, n, l, m)
