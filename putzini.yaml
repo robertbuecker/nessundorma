@@ -13,4 +13,4 @@ range_y: !!python/tuple [-250, 300]
 room_rotation: -80
 arka_radius: 100
 tag_name: B521
-keepout_img: tip.tiff
+keepout_img: tib.tiff
