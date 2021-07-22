@@ -479,7 +479,7 @@ class PutziniSound:
 
 class KeepoutError(Exception):
 
-    def __init__(self, message='', current_pos=None, target_pos=None):
+    def __init__(self, message='', current_pos=None, target_pos=None, mqtt_client=None):
         self.current_pos = current_pos
         self.target_pos = target_pos
         self.message = ''
@@ -489,17 +489,20 @@ class KeepoutError(Exception):
             self.message += f'going to {target_pos} '
         if message:
             self.message += message
+        if mqtt_client is not None:
+            asyncio.ensure_future(mqtt_client.publish("putzini/error", 'Keepout error: ' + self.message))
         super().__init__(self.message)
 
 class PutziniKeepoutArea:
 
-    def __init__(self, putzini_config: PutziniConfig, putzini_drive: PutziniDrive = None):
+    def __init__(self, mqtt_client, putzini_config: PutziniConfig, putzini_drive: PutziniDrive = None):
         # the image should have 1px per mm
         self.img = 255-imageio.imread(putzini_config.keepout_img)
         self.ref = self.img.shape[0]/2, self.img.shape[1]/2
         self.drive = putzini_drive
         self.fac = 100 # set to 100 if parameters are supposed to be meters
         self.stop = True
+        self.mqtt_client = mqtt_client
         
     def is_point_keepout(self, x, y):
         Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
@@ -517,12 +520,12 @@ class PutziniKeepoutArea:
             if self.is_line_keepout(x1, y1, x2, y2):
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
-                raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2))
+                raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
         else:
             if self.is_point_keepout(x1, y1):
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
-                raise KeepoutError(current_pos=(x1, y1), target_pos=None)
+                raise KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
 
 class PutziniNav2:
     # Anchor-based system
@@ -772,7 +775,7 @@ class Putzini:
         self.config = PutziniConfig(mqtt_client)
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.keepout = PutziniKeepoutArea(self.config, self.drive)
+        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
@@ -869,7 +872,7 @@ class Putzini:
             start = self.nav.get_position()
             end = np.array([x,y])
 
-            print(start, end)
+            # print(start, end)
             self.keepout.validate(start[0], start[1], end[0], end[1])
 
             diff = end-start
@@ -906,7 +909,7 @@ class Putzini:
             next_y = random.randint(ymin, ymax)
             print(f'Random step to {next_x}, {next_y}, speed: {speed}')
             try:
-                await self.move_absolute(next_x, next_y, speed)
+                await self.move_absolute(next_x, next_y, speed, accuracy=40)
             except KeepoutError as err:
                 print(f'Random move is impossible: {err}')
                 pass
