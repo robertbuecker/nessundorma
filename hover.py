@@ -108,17 +108,28 @@ class PutziniConfig:
             else:
                 print(f'Option {k} in yaml file is not recognized.')
 
+class KeepoutError(Exception):
+
+    def __init__(self, message='', current_pos=(0,0), target_pos=(0,0)):
+        self.current_pos = current_pos
+        self.target_pos = target_pos
+        self.message = message
+        super().__init__(self.message)
+
 class PutziniKeepoutArea:
     def __init__(self, keepout_img):
         # the image should have 1px per mm
         self.img = 255-skimage.io.imread(keepout_img)
         self.ref = self.img.shape[0]/2, self.img.shape[1]/2
         
+    def is_point_keepout(self, x, y):
+        return self.img[int(y+self.ref[0]), int(x+self.ref[1])] > 0
+
     def is_line_keepout(self, x1, y1, x2, y2):
         r, c = skimage.draw.line(int(y1+self.ref[0]), int(x1+self.ref[1]), 
                 int(y2+self.ref[0]), int(x2+self.ref[1]))
         return np.sum(self.img[r, c]) > 0
-    
+
 class PutziniLamp:
     def __init__(self):
         self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
@@ -823,6 +834,9 @@ class Putzini:
         while True: 
             start = self.nav.get_position()
             end = np.array([x,y])
+
+            if self.keepout.is_line_keepout(start[0], start[1], end[0], end[1]):
+                raise KeepoutError('Keepout error during absolute move', tuple(start), tuple(end))
 
             diff = end-start
             distance = np.linalg.norm(diff)
