@@ -39,8 +39,8 @@ import os
 import time
 import simpleaudio as sa
 import subprocess
-# import skimage.io
-# import skimage.draw
+import skimage.io
+import skimage.draw
 
 import numpy as np
 
@@ -77,15 +77,15 @@ class PutziniState:
 class PutziniKeepoutArea:
     def __init__(self, keepout_img):
         # the image should have 1px per mm
-        self.img = skimage.io.imread(keepout_img)
+        self.img = 255-skimage.io.imread(keepout_img)
         self.ref = self.img.shape[0]/2, self.img.shape[1]/2
         
     def _transform_to_image_system(self, x, y):
         pass
         
     def is_line_keepout(self, x1, y1, x2, y2):
-        r, c = skimage.draw.line(int(x1), int(y1), int(x2), int(y2))
-        return np.sum(self.img[r, c] != np.zeros(4)) > 0
+        r, c = skimage.draw.line(int(y1+self.ref[0]), int(x1+self.ref[1]), int(y2+self.ref[0]), int(x2+self.ref[1]))
+        return np.sum(self.img[r, c]) > 0
     
 class PutziniLamp:
     def __init__(self):
