@@ -39,8 +39,8 @@ import os
 import time
 import simpleaudio as sa
 import subprocess
-# import skimage.io
-# import skimage.draw
+import skimage.io
+import skimage.draw
 
 import numpy as np
 
@@ -86,6 +86,8 @@ class PutziniConfig:
         self.nav_update_rate = 20
         self.bno055_calib = {'a': 1, 'b': 2, 'c': 3}
         self.room_rotation = 0
+        self.arka_radius = 100
+        self.keepout_img = 'keepout.tiff'
         try:
             self.from_yaml()
         except FileNotFoundError:
@@ -106,19 +108,16 @@ class PutziniConfig:
             else:
                 print(f'Option {k} in yaml file is not recognized.')
 
-
 class PutziniKeepoutArea:
     def __init__(self, keepout_img):
         # the image should have 1px per mm
-        self.img = skimage.io.imread(keepout_img)
+        self.img = 255-skimage.io.imread(keepout_img)
         self.ref = self.img.shape[0]/2, self.img.shape[1]/2
         
-    def _transform_to_image_system(self, x, y):
-        pass
-        
     def is_line_keepout(self, x1, y1, x2, y2):
-        r, c = skimage.draw.line(int(x1), int(y1), int(x2), int(y2))
-        return np.sum(self.img[r, c] != np.zeros(4)) > 0
+        r, c = skimage.draw.line(int(y1+self.ref[0]), int(x1+self.ref[1]), 
+                int(y2+self.ref[0]), int(x2+self.ref[1]))
+        return np.sum(self.img[r, c]) > 0
     
 class PutziniLamp:
     def __init__(self):
@@ -387,8 +386,11 @@ class PutziniNav2:
         self.sensor.offsets_magnetometer = self.calibration['off_mag']
         self.sensor.radius_accelerometer = self.calibration['rad_acc']
         self.sensor.radius_magnetometer = self.calibration['rad_mag']
+
+        # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
         self.sensor.mode = adafruit_bno055.NDOF_MODE
         print('Orientation sensor started.')
+
         self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
                             'off_gyr': self.sensor.offsets_gyroscope,
                             'off_mag': self.sensor.offsets_magnetometer,
@@ -462,7 +464,7 @@ class PutziniNav2:
                 self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
-            print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
+            # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
             # dirty fix: just inverting in-plane angle for now
             c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
             self.RT_rp = np.array([[c,-s,0,self.position[0]], 
@@ -724,6 +726,7 @@ class Putzini:
     def __init__(self, mqtt_client):
         self.config = PutziniConfig(mqtt_client)
         self.state = PutziniState(mqtt_client)
+        self.keepout = PutziniKeepoutArea(self.config)
         self.drive = PutziniDrive(mqtt_client)
         self.nav = PutziniNav2(mqtt_client, self.state, self.config)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
@@ -740,11 +743,11 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        l = asyncio.ensure_future(self.lamp.connect())
+        # l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
         
-        await asyncio.gather(d, n, l, m)
-        # await asyncio.gather(d, n, m)
+        # await asyncio.gather(d, n, l, m)
+        await asyncio.gather(d, n, m)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30):
         angle = int(angle)
@@ -792,8 +795,6 @@ class Putzini:
             await asyncio.sleep(20e-3)       
 
         
-        
-
     async def turn_relative(self, delta_angle, speed=60, accuracy=4, slow_angle=20):
 
         # delta_angle = int(delta_angle)
@@ -812,7 +813,6 @@ class Putzini:
         
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
-
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
