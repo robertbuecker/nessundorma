@@ -312,15 +312,19 @@ class PutziniNav2:
         
         self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
         
-        self.anchor_pos = np.array([[-260, -400, 0],
-                           [260,-400, 0],
-                           [0,-35, 0]],dtype=float)/100
- 
+        # self.anchor_pos = np.array([[-260, -400, 0],
+        #                    [260,-400, 0],
+        #                    [0,-35, 0]],dtype=float)/100
+
+        self.anchor_pos = np.array([[400, -260, 0],
+                           [400,+400, 0],
+                           [+35,0, 0]],dtype=float)/100
+
         self.distances = np.array([0.,0.,0.])
         self.distances_sig = np.array([0.,0.,0.])
         self._distance_buffer = []
         self.position = self.anchor_pos.mean(axis=0)
-        self.position[2] = 0
+        self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
         self.alpha = 0
@@ -375,6 +379,7 @@ class PutziniNav2:
             N_valid = (1-np.isnan(_distances)).sum(axis=0)
             avg = np.nanmean(_distances, axis=0)
             self.distances[N_valid >= 2] = avg[N_valid >= 2]   
+            # print(self.distances)
 
             include_z = True
             t0 = time.time()
@@ -382,10 +387,12 @@ class PutziniNav2:
             if include_z:
                 def error(x):
                     dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
-                    # print((dist_err**2/dist**2))
+                    # dist_err = ((self.anchor_pos - np.concatenate([x[:2].reshape(1,2), x[-1].reshape(1,1)],axis=1))**2).sum(axis=1)**.5 - self.distances
+                    # print((dist_err**2/self.distances**2))
                     f = (dist_err**2/self.distances).sum()
                     return f
                 self.position = minimize(error, self.position, method='BFGS').x
+                print('z-pos is', self.position[2])
 
             else:
                 def error(x):
@@ -396,7 +403,7 @@ class PutziniNav2:
                 self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
-            # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
+            print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
             # dirty fix: just inverting in-plane angle for now
             c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
             self.RT_rp = np.array([[c,-s,0,self.position[0]], 
@@ -656,11 +663,11 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        # l = asyncio.ensure_future(self.lamp.connect())
+        l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
         
-        # await asyncio.gather(d, n, l, m)
-        await asyncio.gather(d, n, m)
+        await asyncio.gather(d, n, l, m)
+        # await asyncio.gather(d, n, m)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30):
         angle = int(angle)
