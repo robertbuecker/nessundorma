@@ -202,6 +202,8 @@ class MainWindow(QtGui.QWidget):
 
         # START PLOTS ---
         self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
+        self.pos_coord.setAspectLocked(True, ratio=1)
+        self.pos_coord.setRange(yRange=(-260,300), xRange=(0,400))
         self.pos_coord.setLabel('left', "Y", units='cm')
         self.pos_coord.setLabel('bottom', "X", units='cm')    
         self.all_points = pg.ScatterPlotItem(size=10)
@@ -301,15 +303,19 @@ class MainWindow(QtGui.QWidget):
             {'back': {'r': ctrl.color().red(), 'g': ctrl.color().green(), 'b': ctrl.color().blue()}}))
         self.control_layout.addRow(QtGui.QLabel('BG Color'), color_bg)
         
+        self.audio_vol = pg.SpinBox(value=10)
+        self.audio_vol.setOpts(bounds=(0,150), step=1)
+        self.control_layout.addRow(QtGui.QLabel('Volume'), self.audio_vol)
+        
         audio_1 = QtGui.QLineEdit('New Peeps/curious_1.wav')
         audio_1.returnPressed.connect(lambda: self.command('audio', {'folder': audio_1.text().rsplit('/', 1)[0], 
-                                                                     'file': audio_1.text().rsplit('/', 1)[1], 'loop': 0, 'vol': 10}
+                                                                     'file': audio_1.text().rsplit('/', 1)[1], 'loop': 0, 'vol': int(self.audio_vol.value())}
                                                            if audio_1.text() else 'stop'))
         self.control_layout.addRow(QtGui.QLabel('Audio once'), audio_1)
                 
         audio_loop = QtGui.QLineEdit('New Peeps/curious_1.wav')
         audio_loop.returnPressed.connect(lambda: self.command('audio', {'folder': audio_loop.text().rsplit('/', 1)[0], 
-                                                                     'file': audio_loop.text().rsplit('/', 1)[1], 'loop': 1, 'vol': 10}
+                                                                     'file': audio_loop.text().rsplit('/', 1)[1], 'loop': 1, 'vol': int(self.audio_vol.value)}
                                                               if audio_loop.text() else 'stop'))
         self.control_layout.addRow(QtGui.QLabel('Audio loop'), audio_loop)
                          
@@ -340,7 +346,7 @@ class MainWindow(QtGui.QWidget):
         self.client.messageSignal.connect(self.on_messageSignal)
         self.client.voltageSignal.connect(self.on_voltageSignal)
 
-        self.client.hostname = "192.168.1.19"
+        self.client.hostname = "172.31.1.150"
         self.client.connectToHost()
         
         self.keyPressEvent = self.key_pressed
