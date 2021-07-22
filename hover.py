@@ -71,7 +71,40 @@ class PutziniState:
         self.publish()
         
     def publish(self):
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[2]}), qos=0))  
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0]}), qos=0))  
+
+class PutziniConfig:
+
+    def __init__(self, mqtt_client):
+        self._mqtt_client = mqtt_client
+        self.range_x = (0, 0)
+        self.range_y = (0, 0)
+        self.anchor_names = ('a', 'b', 'c')
+        self.tag_name = 'd'
+        self.anchor_x = (10, 20, 30)
+        self.anchor_y = (40, 50, 60)
+        self.nav_update_rate = 20
+        self.bno055_calib = {'a': 1, 'b': 2, 'c': 3}
+        self.room_rotation = 0
+        try:
+            self.from_yaml()
+        except FileNotFoundError:
+            print('putzini.yaml not found, initializing one...')
+            self.to_yaml()
+
+    def to_yaml(self):
+        opts = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        print(opts)
+        yaml.dump(opts, open('putzini.yaml', 'w'))
+
+    def from_yaml(self):
+        opts = yaml.load(open('putzini.yaml', 'r'))
+        print(opts)
+        for k, v in opts.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                print(f'Option {k} in yaml file is not recognized.')
 
 
 class PutziniKeepoutArea:
@@ -92,7 +125,7 @@ class PutziniLamp:
         self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
         self.h = 127
         pass
-    
+
     async def connect(self, url = '/dev/serial/by-path/platform-70090000.xusb-usb-0:2.3:1.0-port0'):
         _ , self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=115200)
         asyncio.ensure_future(self._writer_task())
@@ -130,7 +163,7 @@ class PutziniNeckAndVacuum:
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)
         self.set_aux(0)
 
-    def move(self, steps , speed = 127):
+    def move(self, steps , speed = 240):
         self.speed = speed
         frame = struct.pack(">lB",int(steps), self.speed)
         self.writer.write(frame)
@@ -144,11 +177,11 @@ class PutziniNeckAndVacuum:
         else:
             print("Error: Neck not calibrated")
         
-    def set_zero(self):
+    def set_zero(self, _ ):
         self.current_pos = 0
         self.calibrated = True
         
-    def set_vacuum(self,onoff):
+    def set_vacuum(self, onoff):
         """0 == off, 1 == on"""
         
         self.vacuum = int(onoff)
@@ -291,34 +324,30 @@ class PutziniDrive:
 class PutziniNav2:
     # Anchor-based system
 
-    def __init__(self, mqtt_client, putzini_state):
+    def __init__(self, mqtt_client, putzini_state: PutziniState, putzini_config: PutziniConfig):
         # print('Position class started')
         # asyncio.ensure_future(self.connect())
         self.initialized = False
         self.mqtt_client = mqtt_client
         self.state = putzini_state
+        self.config = putzini_config
 
-        if os.path.exists('putziniNav.yml'):
-            with open('putziniNav.yml') as fh:
-                self.opts = yaml.load(fh)
-            self.opts = {} if self.opts is None else self.opts
-        else:
-            self.opts = {}
+        # self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
+        self.anchors = putzini_config.anchor_names
+        self.tag = putzini_config.tag_name
+        self.anchor_idx = {name.encode(): ii for ii, name in enumerate(self.anchors)}
 
-        self.ids = {'anchor_1': 'B4DE',
-                    'anchor_2': 'B4D3',
-                    'anchor_3': 'B4D9',
-                    'tag': 'B521'}
-        
-        self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
-        
-        # self.anchor_pos = np.array([[-260, -400, 0],
-        #                    [260,-400, 0],
-        #                    [0,-35, 0]],dtype=float)/100
+        # self.anchor_pos = np.array([[400, -260, 0],
+        #                    [400,+400, 0],
+        #                    [+35,0, 0]],dtype=float)/100
 
-        self.anchor_pos = np.array([[400, -260, 0],
-                           [400,+400, 0],
-                           [+35,0, 0]],dtype=float)/100
+        self.anchor_pos = np.array(
+            [putzini_config.anchor_x,
+            putzini_config.anchor_y,
+            [0]*len(putzini_config.anchor_x)]
+        ).T/100.
+
+        self.room_rotation = putzini_config.room_rotation
 
         self.distances = np.array([0.,0.,0.])
         self.distances_sig = np.array([0.,0.,0.])
@@ -331,15 +360,46 @@ class PutziniNav2:
         self.t_last_angle = 0
         self.timestamp = -1.
         self.avg_len = 20
-        self.t_update = 50
+        self.t_update = 1000/putzini_config.nav_update_rate
+        self.sensordat = {}
+        self.calibration = putzini_config.bno055_calib
+        self.calibration = {}
+        self.calibrated = (0,0,0,0)
 
     async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', baudrate=512000):
+
+        # Orientation sensor
         i2c = board.I2C()
         i2c.init(board.SCL_1,board.SDA_1, 800)
         self.sensor = adafruit_bno055.BNO055_I2C(i2c)
-        print('I2C orientation sensor connected.')
+        print('I2C orientation sensor connected. Sending calibrations...')
+        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}   
+        print(self.calibration)
+        self.calibration.update(self.config.bno055_calib)             
+        print(self.calibration)
+        self.sensor.mode = adafruit_bno055.CONFIG_MODE
+        self.sensor.offsets_accelerometer = self.calibration['off_acc']
+        self.sensor.offsets_gyroscope = self.calibration['off_gyr']
+        self.sensor.offsets_magnetometer = self.calibration['off_mag']
+        self.sensor.radius_accelerometer = self.calibration['rad_acc']
+        self.sensor.radius_magnetometer = self.calibration['rad_mag']
+        self.sensor.mode = adafruit_bno055.NDOF_MODE
+        print('Orientation sensor started.')
+        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}        
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
+
+        # Position sensor
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
-        print('Master anchor connected.')     
+        print('Master position module connected.')     
         asyncio.ensure_future(self._reader_task())
         await self.start_ranging()
             
@@ -347,7 +407,7 @@ class PutziniNav2:
         await self.stop_ranging()
         self.writer.write(b'$PL,\r\n')
         # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
-        config_string = f'$PK,{self.ids["tag"]},0,3,{self.ids["anchor_1"]},{self.ids["anchor_2"]},{self.ids["anchor_3"]},\r\n'
+        config_string = f'$PK,{self.tag},0,3,{self.anchors[0]},{self.anchors[1]},{self.anchors[2]},\r\n'
         config_string = config_string.encode('utf-8')
         # print(config_string)
         self.writer.write(config_string)
@@ -367,7 +427,7 @@ class PutziniNav2:
             await asyncio.sleep(self.t_update/1000. - ela)
 
             self.alpha = self.sensor.euler
-            self.alpha = (-self.alpha[0], self.alpha[1], self.alpha[2])            
+            self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
             self.timestamp = time.time()
 
             if len(self._distance_buffer) == 0:
@@ -392,7 +452,6 @@ class PutziniNav2:
                     f = (dist_err**2/self.distances).sum()
                     return f
                 self.position = minimize(error, self.position, method='BFGS').x
-                print('z-pos is', self.position[2])
 
             else:
                 def error(x):
@@ -411,16 +470,27 @@ class PutziniNav2:
                                     [0,0,1,self.position[2]], 
                                     [0,0,1,0]])
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", f'N = {N_valid}; d = {self.distances.round(4)}', qos=0))
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
-            sensordat = {
+            self.sensordat = {
                         'B': self.sensor.magnetic,
                         'aA': tuple(x/np.pi*360 for x in self.sensor.gyro),
                         'aL': self.sensor.linear_acceleration,
                         'g': self.sensor.gravity,
                         'a': self.sensor.acceleration}
-            # print(sensordat)
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(sensordat)))
+
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+
+            if self.calibrated != self.sensor.calibration_status:
+                self.calibrated = self.sensor.calibration_status
+                self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
 
     async def _reader_task(self):
         msg=b''
@@ -478,6 +548,12 @@ class PutziniNav2:
     def get_position(self):
         return self.position[:2]
 
+    def store_calib(self, *args):
+        print('Extra args:', args)
+        self.config.bno055_calib = self.calibration
+        print('Storing calibration:', self.calibration)
+        self.config.to_yaml()
+
 class PutziniNav:
     def __init__(self, mqtt_client, putzini_state):
         self.state = putzini_state
@@ -522,8 +598,8 @@ class PutziniNav:
             self.RT_mr = np.diag([1, -1, -1, 1])
 
         # cam on Putzini is hard-coded: rotated by about 90 deg and 15 cm above wheel hubs
-        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0], 
-                        [0,0,1,0.15], [0,0,0,1]])             
+        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0],
+                        [0,0,1,0.15], [0,0,0,1]])
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
@@ -541,7 +617,7 @@ class PutziniNav:
                 ln1 = (await self.proc.stdout.readline()).decode()
                 ln2 = (await self.proc.stdout.readline()).decode()
                 ln3 = (await self.proc.stdout.readline()).decode()
-            
+
                 RT_str = f'[{ln.replace(";", "],")} ' + \
                 f'[{ln1.replace(";", "],")}' + \
                 f'[{ln2.replace(";", "],")}' + \
@@ -646,9 +722,10 @@ class PutziniSound:
 
 class Putzini:
     def __init__(self, mqtt_client):
+        self.config = PutziniConfig(mqtt_client)
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.nav = PutziniNav2(mqtt_client, self.state)
+        self.nav = PutziniNav2(mqtt_client, self.state, self.config)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
@@ -857,7 +934,7 @@ async def parse_json_commands(messages, putzini: Putzini):
             print(f"Error parsing {message.payload.decode('utf-8')}")
             cmd = {}
 
-        try:            
+        try:
             print (f"Executing: {cmd}")
             if "lamp" in cmd and cmd["lamp"] != None:
                 l = cmd["lamp"]
@@ -866,7 +943,7 @@ async def parse_json_commands(messages, putzini: Putzini):
 
             if "head" in cmd and cmd["head"] != None:
                 try:
-                    h = int(cmd["head"])                   
+                    h = int(cmd["head"])
                 except ValueError as err:
                     if isinstance(cmd['head'], str):
                         print('Received Head Command:', cmd['head'])
@@ -874,7 +951,13 @@ async def parse_json_commands(messages, putzini: Putzini):
                         raise err
                 else:
                     putzini.lamp.set_head(h)
-                    print(f"setting head to: {h}") 
+                    print(f"setting head to: {h}")
+
+            if "height" in cmd and cmd["height"] != None:
+                h = int(cmd["height"])
+                putzini.neck.set_position(-160+h)
+                print(f"setting neck to {h}")
+
 
             if "vacuum" in cmd and cmd["vacuum"] != None:
                 v = int(cmd["vacuum"])
@@ -1031,11 +1114,21 @@ async def main():
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/neck")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.move)))
-                 
+
+        manager = client.filtered_messages("putzini/neck_zero")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/neck")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_zero)))
+
         manager = client.filtered_messages("putzini/vacuum")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/vacuum")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_vacuum)))
+        
+        manager = client.filtered_messages("putzini/store_calib")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/store_calib")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
 
         manager = client.filtered_messages("putzini/commands")
         messages = await stack.enter_async_context(manager)

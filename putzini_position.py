@@ -54,7 +54,7 @@ class PutziniPosition:
         self.position = np.array([0,0,0])    
     
     async def connect(self, 
-                        url='/dev/cu.usbserial-0001', baudrate=512000):
+                        url='/dev/ttyUSB1', baudrate=512000):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
 
         
