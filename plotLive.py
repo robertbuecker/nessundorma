@@ -321,13 +321,13 @@ class MainWindow(QtGui.QWidget):
         
         height = pg.SpinBox(value=0)
         # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
-        height.setOpts(bounds=(0,100), suffix='mm', step=1, int=True, compactHeight=False)
+        height.setOpts(bounds=(0,130), suffix='mm', step=1, int=True, compactHeight=False)
         height.valueChanged.connect(lambda x: self.command('height', int(x)))
         self.control_layout.addRow(QtGui.QLabel('Height'), height)  
         
         head = pg.SpinBox(value=0)
         # height.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
-        head.setOpts(bounds=(0,220), suffix='stp', step=1, int=True, compactHeight=False)
+        head.setOpts(bounds=(0,255), suffix='stp', step=1, int=True, compactHeight=False)
         head.valueChanged.connect(lambda x: self.command('head', int(x)))
         self.control_layout.addRow(QtGui.QLabel('Head'), head)  
                                                         
@@ -481,18 +481,19 @@ class MainWindow(QtGui.QWidget):
             self.xpos_indicator.setText(f'{T[0]*100:.0f} cm')
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
             self.angle_indicator.setText(f'{angles[0]},{angles[1]},{angles[2]}')
-            
-            # with np.printoptions(precision=2, suppress=True):
-            #     print(f'Pos: {T}, Euler XYZ: {(angles)}')
                             
             if self.update_graph.isChecked() and d_T > jitter_limit:
+                                
                 inplane = angles[2]
                 # print(pg.hsvColor(angles[2]/np.pi).getRgb())
                 tr = QtGui.QTransform()
                 angle_rot = tr.rotate(-inplane + 180)
                 my_rotated_symbol = angle_rot.map(my_symbol)
                 col = pg.hsvColor((inplane+180)/360)
-
+            
+                with np.printoptions(precision=2, suppress=True):
+                    print(f'Pos: {T}, Euler XYZ: {(angles)}, In-plane: {inplane}')
+                    
                 if self.keep_traces.isChecked():
                     self.all_points.addPoints([{'pos': T[:-1]*100, 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
                                                 'symbol': 'o', 'size': 5}])
@@ -501,7 +502,7 @@ class MainWindow(QtGui.QWidget):
                 
                 # self.current_point.clear()
                 self.current_point.setData([{'pos': T[:-1]*100, 'data': 1, 'brush':pg.mkBrush(col), 
-                                            'symbol': my_rotated_symbol, 'size': 30}], clear=True)    
+                                            'symbol': my_rotated_symbol, 'size': 30}])    
                                                     
                 if tilt_fig:
                     # self.tilt_current_point.clear()
