@@ -16,11 +16,14 @@ import numpy as np
 import pyqtgraph as pg
 import io
 import json
+import yaml
+from ast import literal_eval
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
 
 import paho.mqtt.client as mqtt
+from putzini_config import PutziniConfig
 
 class PutziniError(Exception):
     def __init__(self, *args, **kwargs):
@@ -46,6 +49,8 @@ class MqttClient(QtCore.QObject):
 
     messageSignal = QtCore.pyqtSignal(str)
     voltageSignal = QtCore.pyqtSignal(float)
+    distancesSignal = QtCore.pyqtSignal(dict)
+    calibratedSignal = QtCore.pyqtSignal(tuple)
     errorSignal = QtCore.pyqtSignal(PutziniError)
 
     def __init__(self, parent=None):
@@ -156,6 +161,12 @@ class MqttClient(QtCore.QObject):
         elif msg.topic == 'putzini/error':
             mstr = msg.payload.decode('utf-8')
             self.errorSignal.emit(PutziniError(mstr))
+        elif msg.topic == 'putzini/distances':
+            distance_data = json.loads(msg.payload.decode('utf-8'))
+            self.distancesSignal.emit(distance_data)
+        elif msg.topic == 'putzini/calibrated':
+            calibrated = tuple(literal_eval(msg.payload.decode('utf-8')))
+            self.calibratedSignal.emit(calibrated)
         else:
             print(msg.topic, msg.payload)
             mstr = float(msg.payload.decode("utf-8"))
@@ -206,17 +217,28 @@ class MainWindow(QtGui.QWidget):
         self.top_layout.addWidget(self.plot_widget)
         self.resize(850*(1+int(tilt_fig)),700)
         self.setWindowTitle('Putzini')
+        self.opts = PutziniConfig()
 
         # START PLOTS ---
         self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
         self.pos_coord.setAspectLocked(True, ratio=1)
-        self.pos_coord.setRange(yRange=(-260,300), xRange=(0,400))
+        self.pos_coord.setRange(yRange=self.opts.range_y, xRange=self.opts.range_x)
         self.pos_coord.setLabel('left', "Y", units='cm')
         self.pos_coord.setLabel('bottom', "X", units='cm')    
         self.all_points = pg.ScatterPlotItem(size=10)
         self.current_point = pg.ScatterPlotItem(size=30)
+        self.anchors = {}
+        for lbl, x, y in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y):
+            self.anchors[lbl] = pg.ScatterPlotItem(size=10, symbol='o')
+            self.pos_coord.addItem(self.anchors[lbl])
+            self.anchors[lbl].addPoints(x=[x], y=[y], brush=None, pen='w', pxMode=False, size=10)
+        print(self.anchors)
+        self.arka = pg.ScatterPlotItem(size=10, symbol='o', pxMode=False)
+        # for lbl, x, y in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y):
         self.pos_coord.addItem(self.current_point)
+        self.pos_coord.addItem(self.arka)
         self.pos_coord.addItem(self.all_points)
+        self.arka.addPoints(x=[0], y=[0], size=146)
 
         if tilt_fig:
             self.tilt_coord = self.plot_widget.addPlot(title="Out-of-plane tilt", row=0, col=1)
@@ -347,7 +369,10 @@ class MainWindow(QtGui.QWidget):
                           
         self.battery_indicator = QtGui.QLineEdit(readOnly=True)
         self.control_layout.addRow(QtGui.QLabel('Battery'), self.battery_indicator)
-
+                          
+        self.calibrated_indicator = QtGui.QLineEdit(readOnly=True)
+        self.control_layout.addRow(QtGui.QLabel('Calibrated'), self.calibrated_indicator)
+        
         random.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
         random.returnPressed.connect(lambda: self.command('move', f'moveRandom({random.text()},{random_rng.text()})'))
         
@@ -369,6 +394,8 @@ class MainWindow(QtGui.QWidget):
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
         self.client.voltageSignal.connect(self.on_voltageSignal)
+        self.client.distancesSignal.connect(self.on_distancesSignal)
+        self.client.calibratedSignal.connect(self.on_calibratedSignal)
         self.client.errorSignal.connect(self.on_errorSignal)
 
         self.client.hostname = "172.31.1.150"
@@ -377,6 +404,8 @@ class MainWindow(QtGui.QWidget):
         self.keyPressEvent = self.key_pressed
         
         self.last_RT = None
+        self.last_distances = None
+        self.last_calibrated = None
         self.step_size = 2000
 
     def command(self, kind: str, value):
@@ -395,16 +424,47 @@ class MainWindow(QtGui.QWidget):
             self.client.subscribe("putzini/position")
             self.client.subscribe("putzini/v_batt")
             self.client.subscribe("putzini/error")
+            self.client.subscribe("putzini/calibrated")
+            self.client.subscribe("putzini/distances")
 
     @QtCore.pyqtSlot(float)
     def on_voltageSignal(self, voltage):
         self.battery_indicator.setText(f'{voltage:.2f} V')
 
+    @QtCore.pyqtSlot(tuple)
+    def on_calibratedSignal(self, calibrated):
+        self.calibrated_indicator.setText(f'S{calibrated[0]} G{calibrated[1]} A{calibrated[2]} M{calibrated[3]}')
+        # self.battery_indicator.setText(f'{voltage:.2f} V')
+
     @QtCore.pyqtSlot(PutziniError)
     def on_errorSignal(self, error):
         self.last_err.setText(f'{error}')
         print(error)
+
+    @QtCore.pyqtSlot(dict)
+    def on_distancesSignal(self, distances):
+        # print(f'Distances: {distances}')
+        dist = np.array(distances['d'])*100
+        num = np.array(distances['N'])
+        # if (self.last_distances is None) or not np.allclose(distances['d'], self.last_distances):
+        if True:
+            self.last_distances = dist
+            
+            if self.update_graph.isChecked():        
+                plot_dat = []
+                for lbl, x, y, d in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y, dist):
+                # self.anchors.clear()   
+                    self.anchors[lbl].setData(x=[x], y=[y], brush=None, pen='w', pxMode=False, size=2*d)
+                    
+                #     plot_dat.append({'pos': (x, y),
+                #                     'size': d,
+                #                     'symbol': 'o',
+                #                     'name': name})
+                
+                # self.anchors.setData(spots=plot_dat, pxMode=False)
         
+        # self.battery_indicator.setText(f'{voltage:.2f} V')
+
     @QtCore.pyqtSlot(str)
     def on_messageSignal(self, msg):
         
