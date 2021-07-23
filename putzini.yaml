@@ -1,8 +1,8 @@
 anchor_names: !!python/tuple [B4DE, B4D3, B4D9]
 anchor_x: !!python/tuple [400, 400, 60]
 anchor_y: !!python/tuple [-260, 150, 0]
-waypoint_x: !!python/tuple [190, 190, -210, -210]
-waypoint_y: !!python/tuple [190, -190, -190, 190]
+waypoint_x: !!python/tuple [0,     163, 230, 163, 0, -163 ,-230, -163]
+waypoint_y: !!python/tuple [-230, -163, 0  , 163, 230, 163,0, -163]
 bno055_calib:
   off_acc: !!python/tuple [14, -4, -41]
   off_gyr: !!python/tuple [-3, 0, 0]
@@ -10,9 +10,9 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 717
 nav_update_rate: 20
-range_x: !!python/tuple [-250, 350]
-range_y: !!python/tuple [-250, 250]
+range_x: !!python/tuple [-300, 350]
+range_y: !!python/tuple [-300, 300]
 room_rotation: -80
 arka_radius: 100
 tag_name: B521
-keepout_img: tib.tiff
+keepout_img: fsp.tiff
