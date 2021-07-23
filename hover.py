@@ -39,8 +39,9 @@ import os
 import time
 import simpleaudio as sa
 import subprocess
-import skimage.io
-import skimage.draw
+# import skimage.io
+# import skimage.draw
+import imageio
 
 import numpy as np
 
@@ -61,7 +62,9 @@ class PutziniState:
         self.action = 'Moving'
         self.publish()
         
-    def set_idle(self,bla=""):
+    def set_idle(self, move_task=None):
+        if (move_task is not None) and (move_task.exception() is not None):
+            raise move_task.exception()
         self.action = "Idle"
         self.publish()
         
@@ -71,28 +74,49 @@ class PutziniState:
         self.publish()
         
     def publish(self):
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[2]}), qos=0))  
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0]}), qos=0))  
 
+class PutziniConfig:
 
-class PutziniKeepoutArea:
-    def __init__(self, keepout_img):
-        # the image should have 1px per mm
-        self.img = 255-skimage.io.imread(keepout_img)
-        self.ref = self.img.shape[0]/2, self.img.shape[1]/2
-        
-    def _transform_to_image_system(self, x, y):
-        pass
-        
-    def is_line_keepout(self, x1, y1, x2, y2):
-        r, c = skimage.draw.line(int(y1+self.ref[0]), int(x1+self.ref[1]), int(y2+self.ref[0]), int(x2+self.ref[1]))
-        return np.sum(self.img[r, c]) > 0
-    
+    def __init__(self, mqtt_client):
+        self._mqtt_client = mqtt_client
+        self.range_x = (0, 0)
+        self.range_y = (0, 0)
+        self.anchor_names = ('a', 'b', 'c')
+        self.tag_name = 'd'
+        self.anchor_x = (10, 20, 30)
+        self.anchor_y = (40, 50, 60)
+        self.nav_update_rate = 20
+        self.bno055_calib = {'a': 1, 'b': 2, 'c': 3}
+        self.room_rotation = 0
+        self.arka_radius = 100
+        self.keepout_img = 'keepout.tiff'
+        try:
+            self.from_yaml()
+        except FileNotFoundError:
+            print('putzini.yaml not found, initializing one...')
+            self.to_yaml()
+
+    def to_yaml(self):
+        opts = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        print(opts)
+        yaml.dump(opts, open('putzini.yaml', 'w'))
+
+    def from_yaml(self):
+        opts = yaml.load(open('putzini.yaml', 'r'))
+        print(opts)
+        for k, v in opts.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                print(f'Option {k} in yaml file is not recognized.')
+
 class PutziniLamp:
     def __init__(self):
         self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
         self.h = 127
         pass
-    
+
     async def connect(self, url = '/dev/serial/by-path/platform-70090000.xusb-usb-0:2.3:1.0-port0'):
         _ , self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=115200)
         asyncio.ensure_future(self._writer_task())
@@ -130,7 +154,7 @@ class PutziniNeckAndVacuum:
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)
         self.set_aux(0)
 
-    def move(self, steps , speed = 127):
+    def move(self, steps , speed = 240):
         self.speed = speed
         frame = struct.pack(">lB",int(steps), self.speed)
         self.writer.write(frame)
@@ -144,11 +168,11 @@ class PutziniNeckAndVacuum:
         else:
             print("Error: Neck not calibrated")
         
-    def set_zero(self):
+    def set_zero(self, _ ):
         self.current_pos = 0
         self.calibrated = True
         
-    def set_vacuum(self,onoff):
+    def set_vacuum(self, onoff):
         """0 == off, 1 == on"""
         
         self.vacuum = int(onoff)
@@ -287,197 +311,6 @@ class PutziniDrive:
         if self.finished.done():
             self.finished = loop.create_future()
 
-
-class PutziniNav2:
-    # Anchor-based system
-
-    def __init__(self, mqtt_client, putzini_state):
-        # print('Position class started')
-        # asyncio.ensure_future(self.connect())
-        self.initialized = False
-        self.mqtt_client = mqtt_client
-        self.state = putzini_state
-
-        if os.path.exists('putziniNav.yml'):
-            with open('putziniNav.yml') as fh:
-                self.opts = yaml.load(fh)
-            self.opts = {} if self.opts is None else self.opts
-        else:
-            self.opts = {}
-
-        self.ids = {'anchor_1': 'B4DE',
-                    'anchor_2': 'B4D3',
-                    'anchor_3': 'B4D9',
-                    'tag': 'B521'}
-        
-        self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
-        
-        # self.anchor_pos = np.array([[-260, -400, 0],
-        #                    [260,-400, 0],
-        #                    [0,-35, 0]],dtype=float)/100
-
-        self.anchor_pos = np.array([[400, -260, 0],
-                           [400,+400, 0],
-                           [+35,0, 0]],dtype=float)/100
-
-        self.distances = np.array([0.,0.,0.])
-        self.distances_sig = np.array([0.,0.,0.])
-        self._distance_buffer = []
-        self.position = self.anchor_pos.mean(axis=0)
-        self.position[2] = -0.05
-        self.RT_rp = np.eye(4)
-        self.sensor = None
-        self.alpha = 0
-        self.t_last_angle = 0
-        self.timestamp = -1.
-        self.avg_len = 20
-        self.t_update = 50
-
-    async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', baudrate=512000):
-        i2c = board.I2C()
-        i2c.init(board.SCL_1,board.SDA_1, 800)
-        self.sensor = adafruit_bno055.BNO055_I2C(i2c)
-        print('I2C orientation sensor connected.')
-        self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
-        print('Master anchor connected.')     
-        asyncio.ensure_future(self._reader_task())
-        await self.start_ranging()
-            
-    async def start_ranging(self):
-        await self.stop_ranging()
-        self.writer.write(b'$PL,\r\n')
-        # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
-        config_string = f'$PK,{self.ids["tag"]},0,3,{self.ids["anchor_1"]},{self.ids["anchor_2"]},{self.ids["anchor_3"]},\r\n'
-        config_string = config_string.encode('utf-8')
-        # print(config_string)
-        self.writer.write(config_string)
-        self.writer.write(b'$PS,\r\n')
-        print('Ranging configured and started.')
-        asyncio.ensure_future(self.update_position())
-        
-    async def stop_ranging(self):
-        self.writer.write(b'$PG,')
-            
-    async def update_position(self):
-        
-        while True:
-
-            ela = time.time() - self.timestamp
-            # print(round(ela*1000))
-            await asyncio.sleep(self.t_update/1000. - ela)
-
-            self.alpha = self.sensor.euler
-            self.alpha = (-self.alpha[0], self.alpha[1], self.alpha[2])            
-            self.timestamp = time.time()
-
-            if len(self._distance_buffer) == 0:
-                # print('Distance buffer is empty. WTF?')
-                continue
-
-            _distances = np.stack(self._distance_buffer)
-            self._distance_buffer = []
-            N_valid = (1-np.isnan(_distances)).sum(axis=0)
-            avg = np.nanmean(_distances, axis=0)
-            self.distances[N_valid >= 2] = avg[N_valid >= 2]   
-            # print(self.distances)
-
-            include_z = True
-            t0 = time.time()
-
-            if include_z:
-                def error(x):
-                    dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
-                    # dist_err = ((self.anchor_pos - np.concatenate([x[:2].reshape(1,2), x[-1].reshape(1,1)],axis=1))**2).sum(axis=1)**.5 - self.distances
-                    # print((dist_err**2/self.distances**2))
-                    f = (dist_err**2/self.distances).sum()
-                    return f
-                self.position = minimize(error, self.position, method='BFGS').x
-                print('z-pos is', self.position[2])
-
-            else:
-                def error(x):
-                    dist_err = ((self.anchor_pos - np.concatenate([x.reshape(1,2), np.zeros((1,1))], axis=1))**2).sum(axis=1)**.5 - self.distances
-                    # print((dist_err**2/dist**2))
-                    f = (dist_err**2/self.distances).sum()
-                    return f
-                self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
-
-            # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
-            print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
-            # dirty fix: just inverting in-plane angle for now
-            c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
-            self.RT_rp = np.array([[c,-s,0,self.position[0]], 
-                                    [s,c,0,self.position[1]], 
-                                    [0,0,1,self.position[2]], 
-                                    [0,0,1,0]])
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", f'N = {N_valid}; d = {self.distances.round(4)}', qos=0))
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
-            self.state.set_position_with_alpha(self.position, self.alpha)
-            sensordat = {
-                        'B': self.sensor.magnetic,
-                        'aA': tuple(x/np.pi*360 for x in self.sensor.gyro),
-                        'aL': self.sensor.linear_acceleration,
-                        'g': self.sensor.gravity,
-                        'a': self.sensor.acceleration}
-            # print(sensordat)
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(sensordat)))
-
-    async def _reader_task(self):
-        msg=b''
-        ii = 0
-        print('Positioning reader task started')
-        while True:
-            msg = await self.reader.readline()
-            # msg = msg.strip().decode()
-            # print(msg)
-            try:
-                cmd, par = msg.strip().split(b',',1)
-            except:
-                print(f'Failing to split message: {msg}')
-                continue
-            # cmd, par = cmd.decode(), par.decode()
-            # print('Received:',cmd, par)
-            if cmd == b'$PX':
-                print(f'Ping received: {par}')
-                
-            elif cmd == b'$PD':
-                ii += 1
-                # await asyncio.sleep(0.1)
-                new_dist = np.nan*np.ones(3)
-                try:
-                    tag_id, a1_dist, a2_dist, a3_dist, udata, _ = par.split(b',',5)
-                    d1, d2, d3 = int(a1_dist, 16), int(a2_dist, 16), int(a3_dist, 16)
-                    if not d1 == 0:
-                        new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
-                    self._distance_buffer.append(new_dist)
-                except:
-                    print(f'Could not decode distance message: {par}')
-                    pass
-                                            
-            elif cmd == b'$PS':
-                print(f'Ranging started.')
-                
-            elif cmd == b'$PG':
-                print(f'Ranging stopped.')
-                
-            elif cmd == b'$PW':
-                print(f'Configuration received: {par}')
-    
-    def get_position(self):
-        return self.position[:2]
-
-    def get_angle(self):
-        return self.alpha[0]
-
-    async def get_new_angle(self):
-        while self.timestamp == self.t_last_angle:
-            await asyncio.sleep(0.04)
-        self.t_last_angle = self.timestamp
-        return self.alpha[0]
-    
-    def get_position(self):
-        return self.position[:2]
-
 class PutziniNav:
     def __init__(self, mqtt_client, putzini_state):
         self.state = putzini_state
@@ -522,8 +355,8 @@ class PutziniNav:
             self.RT_mr = np.diag([1, -1, -1, 1])
 
         # cam on Putzini is hard-coded: rotated by about 90 deg and 15 cm above wheel hubs
-        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0], 
-                        [0,0,1,0.15], [0,0,0,1]])             
+        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0],
+                        [0,0,1,0.15], [0,0,0,1]])
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
@@ -541,7 +374,7 @@ class PutziniNav:
                 ln1 = (await self.proc.stdout.readline()).decode()
                 ln2 = (await self.proc.stdout.readline()).decode()
                 ln3 = (await self.proc.stdout.readline()).decode()
-            
+
                 RT_str = f'[{ln.replace(";", "],")} ' + \
                 f'[{ln1.replace(";", "],")}' + \
                 f'[{ln2.replace(";", "],")}' + \
@@ -644,11 +477,306 @@ class PutziniSound:
 
         self.wave = None
 
+class KeepoutError(Exception):
+
+    def __init__(self, message='', current_pos=None, target_pos=None, mqtt_client=None):
+        self.current_pos = current_pos
+        self.target_pos = target_pos
+        self.message = ''
+        if current_pos is not None:
+            self.message = f'At {current_pos} '
+        if target_pos is not None:
+            self.message += f'going to {target_pos} '
+        if message:
+            self.message += message
+        if mqtt_client is not None:
+            asyncio.ensure_future(mqtt_client.publish("putzini/error", 'Keepout error: ' + self.message))
+        super().__init__(self.message)
+
+class PutziniKeepoutArea:
+
+    def __init__(self, mqtt_client, putzini_config: PutziniConfig, putzini_drive: PutziniDrive = None):
+        # the image should have 1px per mm
+        self.img = 255-imageio.imread(putzini_config.keepout_img)
+        self.ref = self.img.shape[0]/2, self.img.shape[1]/2
+        self.drive = putzini_drive
+        self.fac = 100 # set to 100 if parameters are supposed to be meters
+        self.stop = True
+        self.mqtt_client = mqtt_client
+        
+    def is_point_keepout(self, x, y):
+        Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
+        if (X < 0) or (X >= self.img.shape[1]) or (Y < 0) or (Y >= self.img.shape[1]):
+            return True
+
+        return self.img[Y, X] > 0
+
+    def is_line_keepout(self, x1, y1, x2, y2):
+        x, y = np.linspace(x1, x2, 1000), np.linspace(y1, y2, 1000)
+        return np.sum(self.img[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+
+    def validate(self, x1, y1, x2=None, y2=None, override_stop=False):
+        if (x2 is not None) and (y2 is not None):
+            if self.is_line_keepout(x1, y1, x2, y2):
+                if (self.stop and (not override_stop)) and (self.drive is not None):
+                    self.drive.stop()
+                raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
+        else:
+            if self.is_point_keepout(x1, y1):
+                if (self.stop and (not override_stop)) and (self.drive is not None):
+                    self.drive.stop()
+                raise KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
+
+class PutziniNav2:
+    # Anchor-based system
+
+    def __init__(self, mqtt_client, putzini_state: PutziniState, 
+                putzini_config: PutziniConfig, putzini_keepout: PutziniKeepoutArea):
+        # print('Position class started')
+        # asyncio.ensure_future(self.connect())
+        self.initialized = False
+        self.mqtt_client = mqtt_client
+        self.state = putzini_state
+        self.config = putzini_config
+        self.keepout = putzini_keepout
+
+        # self.anchor_idx = {b'B4DE': 0, b'B4D3': 1, b'B4D9': 2}
+        self.anchors = putzini_config.anchor_names
+        self.tag = putzini_config.tag_name
+        self.anchor_idx = {name.encode(): ii for ii, name in enumerate(self.anchors)}
+
+        # self.anchor_pos = np.array([[400, -260, 0],
+        #                    [400,+400, 0],
+        #                    [+35,0, 0]],dtype=float)/100
+
+        self.anchor_pos = np.array(
+            [putzini_config.anchor_x,
+            putzini_config.anchor_y,
+            [0]*len(putzini_config.anchor_x)]
+        ).T/100.
+
+        self.room_rotation = putzini_config.room_rotation
+
+        self.distances = np.array([0.,0.,0.])
+        self.distances_sig = np.array([0.,0.,0.])
+        self._distance_buffer = []
+        self.position = self.anchor_pos.mean(axis=0)
+        self.position[2] = -0.05
+        self.RT_rp = np.eye(4)
+        self.sensor = None
+        self.alpha = 0
+        self.t_last_angle = 0
+        self.timestamp = -1.
+        self.avg_len = 20
+        self.t_update = 1000/putzini_config.nav_update_rate
+        self.sensordat = {}
+        self.calibration = putzini_config.bno055_calib
+        self.calibration = {}
+        self.calibrated = (0,0,0,0)
+
+    async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', baudrate=512000):
+
+        # Orientation sensor
+        i2c = board.I2C()
+        i2c.init(board.SCL_1,board.SDA_1, 800)
+        self.sensor = adafruit_bno055.BNO055_I2C(i2c)
+        print('I2C orientation sensor connected. Sending calibrations...')
+        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}   
+        print(self.calibration)
+        self.calibration.update(self.config.bno055_calib)             
+        print(self.calibration)
+        self.sensor.mode = adafruit_bno055.CONFIG_MODE
+        self.sensor.offsets_accelerometer = self.calibration['off_acc']
+        self.sensor.offsets_gyroscope = self.calibration['off_gyr']
+        self.sensor.offsets_magnetometer = self.calibration['off_mag']
+        self.sensor.radius_accelerometer = self.calibration['rad_acc']
+        self.sensor.radius_magnetometer = self.calibration['rad_mag']
+
+        # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
+        self.sensor.mode = adafruit_bno055.NDOF_MODE
+        print('Orientation sensor started.')
+
+        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}        
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
+
+        # Position sensor
+        self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
+        print('Master position module connected.')     
+        asyncio.ensure_future(self._reader_task())
+        await self.start_ranging()
+            
+    async def start_ranging(self):
+        await self.stop_ranging()
+        self.writer.write(b'$PL,\r\n')
+        # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
+        config_string = f'$PK,{self.tag},0,3,{self.anchors[0]},{self.anchors[1]},{self.anchors[2]},\r\n'
+        config_string = config_string.encode('utf-8')
+        # print(config_string)
+        self.writer.write(config_string)
+        self.writer.write(b'$PS,\r\n')
+        print('Ranging configured and started.')
+        asyncio.ensure_future(self.update_position())
+        
+    async def stop_ranging(self):
+        self.writer.write(b'$PG,')
+            
+    async def update_position(self):
+        
+        while True:
+
+            ela = time.time() - self.timestamp
+            # print(round(ela*1000))
+            await asyncio.sleep(self.t_update/1000. - ela)
+
+            self.alpha = self.sensor.euler
+            self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
+            self.timestamp = time.time()
+
+            if len(self._distance_buffer) == 0:
+                # print('Distance buffer is empty. WTF?')
+                continue
+
+            _distances = np.stack(self._distance_buffer)
+            self._distance_buffer = []
+            N_valid = (1-np.isnan(_distances)).sum(axis=0)
+            avg = np.nanmean(_distances, axis=0)
+            self.distances[N_valid >= 2] = avg[N_valid >= 2]   
+            # print(self.distances)
+
+            include_z = True
+            t0 = time.time()
+
+            if include_z:
+                def error(x):
+                    dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
+                    # dist_err = ((self.anchor_pos - np.concatenate([x[:2].reshape(1,2), x[-1].reshape(1,1)],axis=1))**2).sum(axis=1)**.5 - self.distances
+                    # print((dist_err**2/self.distances**2))
+                    f = (dist_err**2/self.distances).sum()
+                    return f
+                self.position = minimize(error, self.position, method='BFGS').x
+
+            else:
+                def error(x):
+                    dist_err = ((self.anchor_pos - np.concatenate([x.reshape(1,2), np.zeros((1,1))], axis=1))**2).sum(axis=1)**.5 - self.distances
+                    # print((dist_err**2/dist**2))
+                    f = (dist_err**2/self.distances).sum()
+                    return f
+                self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
+
+            try:
+                self.keepout.validate(self.position[0], self.position[1])
+            except KeepoutError as err:
+                print(f'Encountered keepout error: {err}')
+
+            # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
+            # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
+            # dirty fix: just inverting in-plane angle for now
+            c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
+            self.RT_rp = np.array([[c,-s,0,self.position[0]], 
+                                    [s,c,0,self.position[1]], 
+                                    [0,0,1,self.position[2]], 
+                                    [0,0,1,0]])
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", f'N = {N_valid}; d = {self.distances.round(4)}', qos=0))
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
+            self.state.set_position_with_alpha(self.position, self.alpha)
+            self.sensordat = {
+                        'B': self.sensor.magnetic,
+                        'aA': tuple(x/np.pi*360 for x in self.sensor.gyro),
+                        'aL': self.sensor.linear_acceleration,
+                        'g': self.sensor.gravity,
+                        'a': self.sensor.acceleration}
+
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+
+            if self.calibrated != self.sensor.calibration_status:
+                self.calibrated = self.sensor.calibration_status
+                self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
+
+    async def _reader_task(self):
+        msg=b''
+        ii = 0
+        print('Positioning reader task started')
+        while True:
+            msg = await self.reader.readline()
+            # msg = msg.strip().decode()
+            # print(msg)
+            try:
+                cmd, par = msg.strip().split(b',',1)
+            except:
+                print(f'Failing to split message: {msg}')
+                continue
+            # cmd, par = cmd.decode(), par.decode()
+            # print('Received:',cmd, par)
+            if cmd == b'$PX':
+                print(f'Ping received: {par}')
+                
+            elif cmd == b'$PD':
+                ii += 1
+                # await asyncio.sleep(0.1)
+                new_dist = np.nan*np.ones(3)
+                try:
+                    tag_id, a1_dist, a2_dist, a3_dist, udata, _ = par.split(b',',5)
+                    d1, d2, d3 = int(a1_dist, 16), int(a2_dist, 16), int(a3_dist, 16)
+                    if not d1 == 0:
+                        new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
+                    self._distance_buffer.append(new_dist)
+                except:
+                    print(f'Could not decode distance message: {par}')
+                    pass
+                                            
+            elif cmd == b'$PS':
+                print(f'Ranging started.')
+                
+            elif cmd == b'$PG':
+                print(f'Ranging stopped.')
+                
+            elif cmd == b'$PW':
+                print(f'Configuration received: {par}')
+    
+    def get_position(self):
+        return self.position[:2]
+
+    def get_angle(self):
+        return self.alpha[0]
+
+    async def get_new_angle(self):
+        while self.timestamp <= self.t_last_angle:
+            await asyncio.sleep(0.01)
+        self.t_last_angle = self.timestamp
+        return self.alpha[0]
+    
+    def get_position(self):
+        return self.position[:2]
+
+    def store_calib(self, *args):
+        print('Extra args:', args)
+        self.config.bno055_calib = self.calibration
+        print('Storing calibration:', self.calibration)
+        self.config.to_yaml()
+
 class Putzini:
     def __init__(self, mqtt_client):
+        self.config = PutziniConfig(mqtt_client)
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.nav = PutziniNav2(mqtt_client, self.state)
+        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
+        self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
@@ -663,13 +791,13 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        l = asyncio.ensure_future(self.lamp.connect())
+        # l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
-        
-        await asyncio.gather(d, n, l, m)
-        # await asyncio.gather(d, n, m)
+          
+        # await asyncio.gather(d, n, l, m)
+        await asyncio.gather(d, n, m)
     
-    async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30):
+    async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
 
         print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
@@ -679,7 +807,7 @@ class Putzini:
 
         while True:
             # old_angle = self.nav.get_angle()
-            print('Reading previous angle')
+            # print('Reading previous angle')
             old_angle = (await asyncio.gather(self.nav.get_new_angle()))[0]
             
             # calculate the needed relative turn 
@@ -689,7 +817,7 @@ class Putzini:
 
             # overshoot damper
             if a*prev_a < 0:
-                fudge = max(0.05,fudge*0.7)
+                fudge = max(0.1,fudge*0.7)
             prev_a = a
 
             print(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
@@ -697,7 +825,7 @@ class Putzini:
             if abs(a) < slow_angle:
                 speed = min(speed,50)
                             
-            if (abs(a) < accuracy) and (abs(self.drive.meas_speed_r) < 5) and (abs(self.drive.meas_speed_l) < 5):
+            if (abs(a) < accuracy) and (abs(self.drive.meas_speed_r) < speed_lim) and (abs(self.drive.meas_speed_l) < speed_lim):
                 if close_to_target == True:
                     self.drive.stop() # not working? no idea why!
                     break
@@ -715,8 +843,6 @@ class Putzini:
             await asyncio.sleep(20e-3)       
 
         
-        
-
     async def turn_relative(self, delta_angle, speed=60, accuracy=4, slow_angle=20):
 
         # delta_angle = int(delta_angle)
@@ -736,7 +862,6 @@ class Putzini:
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
-
     async def move_absolute(self, x, y=0, speed=60, accuracy=10):
         #TODO adaptive rotation accuracy
         x= int(x) / 100
@@ -746,6 +871,9 @@ class Putzini:
         while True: 
             start = self.nav.get_position()
             end = np.array([x,y])
+
+            # print(start, end)
+            self.keepout.validate(start[0], start[1], end[0], end[1])
 
             diff = end-start
             distance = np.linalg.norm(diff)
@@ -780,7 +908,11 @@ class Putzini:
             next_x = random.randint(xmin, xmax)
             next_y = random.randint(ymin, ymax)
             print(f'Random step to {next_x}, {next_y}, speed: {speed}')
-            await self.move_absolute(next_x, next_y, speed)
+            try:
+                await self.move_absolute(next_x, next_y, speed, accuracy=40)
+            except KeepoutError as err:
+                print(f'Random move is impossible: {err}')
+                pass
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
         distance, xmin, xmax, ymin, ymax = (int(p) / 100 for p in (distance, xmin, xmax, ymin, ymax))
@@ -857,7 +989,7 @@ async def parse_json_commands(messages, putzini: Putzini):
             print(f"Error parsing {message.payload.decode('utf-8')}")
             cmd = {}
 
-        try:            
+        try:
             print (f"Executing: {cmd}")
             if "lamp" in cmd and cmd["lamp"] != None:
                 l = cmd["lamp"]
@@ -866,7 +998,7 @@ async def parse_json_commands(messages, putzini: Putzini):
 
             if "head" in cmd and cmd["head"] != None:
                 try:
-                    h = int(cmd["head"])                   
+                    h = int(cmd["head"])
                 except ValueError as err:
                     if isinstance(cmd['head'], str):
                         print('Received Head Command:', cmd['head'])
@@ -874,7 +1006,13 @@ async def parse_json_commands(messages, putzini: Putzini):
                         raise err
                 else:
                     putzini.lamp.set_head(h)
-                    print(f"setting head to: {h}") 
+                    print(f"setting head to: {h}")
+
+            if "height" in cmd and cmd["height"] != None:
+                h = int(cmd["height"])
+                putzini.neck.set_position(-160+h)
+                print(f"setting neck to {h}")
+
 
             if "vacuum" in cmd and cmd["vacuum"] != None:
                 v = int(cmd["vacuum"])
@@ -1031,11 +1169,21 @@ async def main():
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/neck")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.move)))
-                 
+
+        manager = client.filtered_messages("putzini/neck_zero")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/neck")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_zero)))
+
         manager = client.filtered_messages("putzini/vacuum")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/vacuum")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_vacuum)))
+        
+        manager = client.filtered_messages("putzini/store_calib")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/store_calib")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
 
         manager = client.filtered_messages("putzini/commands")
         messages = await stack.enter_async_context(manager)
