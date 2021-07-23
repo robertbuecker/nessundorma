@@ -1,5 +1,5 @@
 anchor_names: !!python/tuple [B4DE, B4D3, B4D9]
-anchor_x: !!python/tuple [400, 400, 35]
+anchor_x: !!python/tuple [400, 400, 60]
 anchor_y: !!python/tuple [-260, 150, 0]
 bno055_calib:
   off_acc: !!python/tuple [14, -4, -41]

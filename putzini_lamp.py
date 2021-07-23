@@ -95,7 +95,7 @@ class PutziniLamp:
         pass
     
     async def connect(self, url = '/dev/serial/by-path/platform-70090000.xusb-usb-0:2.3:1.0-port0'):
-        _ , self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=460800)
+        _ , self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=115200)
         asyncio.ensure_future(self._writer_task())
     
     async def _writer_task(self):

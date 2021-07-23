@@ -92,16 +92,20 @@ class PutziniNeckAndVacuum:
   
     async def connect(self, url="/dev/serial/by-path/platform-70090000.xusb-usb-0:2.1:1.0-port0", baudrate=115200):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)
+        await asyncio.sleep(0.8)
         self.set_aux(0)
+        await asyncio.sleep(3)
+        self.move(-30000)
+        self.calibrated = True
 
-    def move(self, steps , speed = 240):
+    def move(self, steps , speed = 250):
         self.speed = speed
         frame = struct.pack(">lB",int(steps), self.speed)
         self.writer.write(frame)
-        
+
     def set_position(self, position):
         #convert to steps 
-        position = position/0.005
+        position = float(position)/0.005
         if self.calibrated:
             self.move(position-self.current_pos)
             self.current_pos = position
@@ -250,131 +254,6 @@ class PutziniDrive:
         self.distance_to_move_r = abs(int(dist))
         if self.finished.done():
             self.finished = loop.create_future()
-
-class PutziniNav:
-    def __init__(self, mqtt_client, putzini_state):
-        self.state = putzini_state
-        self.mqtt_client = mqtt_client
-        self.detected = 0
-        if os.path.exists('putziniNav.yml'):
-            with open('putziniNav.yml') as fh:
-                self.opts = yaml.load(fh)
-            self.opts = {} if self.opts is None else self.opts
-        else:
-            self.opts = {}
-
-        self.init_reference_system()
-
-        # Transform convention:
-        # _ba = "a as seen from b", or "transforms a coordinates to b coordinates"
-
-        # MEASUREMENT
-        self.RT_cm = np.eye(4) # marker as seen from camera (as received from ArUco)
-        self.RT_pr = np.eye(4) # Reference seen from Putzini (stable intermediate)
-        self.RT_rp = np.eye(4) # Putzini as seen from reference/room (as broadcasted via MQTT) 
-        self.RT_pm = np.eye(4)
-        self.timestamp = -1.
-        self.t_last_angle = -1.
-
-    def init_reference_system(self):
-        # reference as seen from ArUco system. The flip of the z axis (180 deg around y)
-        # is always done, even if no additional calibration is present
-
-        if 'marker-system' in self.opts:
-            x, y, z, angle = (float(self.opts['marker-system'][k]) for k in ['x', 'y', 'z', 'angle'])
-            ca, sa = np.cos(angle*np.pi/180), np.sin(angle*np.pi/180)
-            reference = np.array([[ca, -sa, 0, x],
-                                [sa, ca, 0, y],
-                                [0, 0, 1, z],
-                                [0, 0, 0, 1]])
-            print('Setting reference system w.r.t. marker system to:')
-            print(reference)
-            self.RT_mr = np.matmul(reference, np.diag([1, -1, -1, 1]))
-
-        else:
-            self.RT_mr = np.diag([1, -1, -1, 1])
-
-        # cam on Putzini is hard-coded: rotated by about 90 deg and 15 cm above wheel hubs
-        self.RT_pc = np.array([[0,1,0,0], [-1,0,0,0],
-                        [0,0,1,0.15], [0,0,0,1]])
-
-    async def start(self):
-        cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
-        # self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map_rfa.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','16', stdout=asyncio.subprocess.PIPE)
-        # asyncio.ensure_future(self._reader_task())
-
-    async def _reader_task(self):
-        while True:
-            ln = (await self.proc.stdout.readline()).decode()
-            if ln.startswith('|@'):
-                status = ln
-            elif ln.startswith('ArUco Detected'):
-                self.detected = int(ln.split()[2])
-            elif ln.startswith('['):
-                ln1 = (await self.proc.stdout.readline()).decode()
-                ln2 = (await self.proc.stdout.readline()).decode()
-                ln3 = (await self.proc.stdout.readline()).decode()
-
-                RT_str = f'[{ln.replace(";", "],")} ' + \
-                f'[{ln1.replace(";", "],")}' + \
-                f'[{ln2.replace(";", "],")}' + \
-                f'[{ln3}]'
-
-                self.RT_cm = np.array(eval(RT_str))
-
-                # transformation steps ensue...
-                self.RT_pm = np.matmul(self.RT_pc, self.RT_cm)
-                self.RT_pr = np.matmul(self.RT_pm, self.RT_mr)
-                self.RT_rp = np.linalg.inv(self.RT_pr)
-
-                xform = transform.Rotation.from_dcm(self.RT_rp[:3,:3])
-                alpha = xform.as_euler('XYZ')*180/np.pi
-
-                if 'out-of-plane-limit' in self.opts and max(alpha[:2]) > float(self.opts['out-of-plane-limit']):
-                    wstr = f'WARNING: out of plane angles {alpha[:2]} exceed limit.'
-                    # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': wstr}),qos=0))  
-                    print(wstr)
-                else:
-                    self.position = self.RT_rp[:3,-1]
-                    self.alpha = alpha
-                    self.timestamp = time.time()
-                    # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': 'OK'}),qos=0))  
-
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))
-                self.state.set_position_with_alpha(self.position, self.alpha)
-                
-    # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
-
-    def get_angle(self):
-        return self.alpha[2]
-
-    async def get_new_angle(self):
-        while self.timestamp == self.t_last_angle:
-            await asyncio.sleep(0.04)
-        self.t_last_angle = self.timestamp
-        return self.alpha[2]
-    
-    def get_position(self):
-        return self.position[:2]
-
-    def set_reference_position(self, clear=False, x=0, y=0):    
-        if clear:
-            self.opts['marker-system'] = {'x': 0, 'y': 0, 
-                'z': 0, 'angle': 0}
-        else:
-            RT_pm_moved = self.RT_pm
-            RT_pm_moved[:3,-1] = RT_pm_moved[:3,-1] + np.array([x/100,y/100,0])
-        
-            RT_calib = np.matmul(np.linalg.inv(RT_pm_moved), np.diag([1, -1, -1, 1]))
-            angles = transform.Rotation.from_dcm(RT_calib[:3,:3]).as_euler('XYZ')*180/np.pi
-
-            self.opts['marker-system'] = {'x': float(RT_calib[0,-1]), 'y': float(RT_calib[1,-1]), 
-                'z': float(RT_calib[2,-1]), 'angle': float(angles[2])}
-
-        self.init_reference_system()
-
-        with open('putziniNav.yml', 'w') as fh:
-            yaml.dump(self.opts, fh)
 
 class PutziniSound:
     def __init__(self, dev_name):
@@ -644,7 +523,10 @@ class PutziniNav2:
                                     [s,c,0,self.position[1]], 
                                     [0,0,1,self.position[2]], 
                                     [0,0,1,0]])
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", f'N = {N_valid}; d = {self.distances.round(4)}', qos=0))
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
+                    json.dumps({'N': N_valid.tolist(), 'd': self.distances.round(4).tolist()}),
+                    # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
+                    qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
@@ -656,6 +538,7 @@ class PutziniNav2:
                         'a': self.sensor.acceleration}
 
             asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+            asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
             if self.calibrated != self.sensor.calibration_status:
                 self.calibrated = self.sensor.calibration_status
@@ -664,7 +547,6 @@ class PutziniNav2:
                             'off_mag': self.sensor.offsets_magnetometer,
                             'rad_mag': self.sensor.radius_magnetometer,
                             'rad_acc': self.sensor.radius_accelerometer}
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
                 asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
 
     async def _reader_task(self):
@@ -750,11 +632,11 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        # l = asyncio.ensure_future(self.lamp.connect())
+        l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
           
-        # await asyncio.gather(d, n, l, m)
-        await asyncio.gather(d, n, m)
+        await asyncio.gather(d, n, l, m)
+        #await asyncio.gather(d, n, m)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
@@ -970,7 +852,7 @@ async def parse_json_commands(messages, putzini: Putzini):
 
             if "height" in cmd and cmd["height"] != None:
                 h = int(cmd["height"])
-                putzini.neck.set_position(-160+h)
+                putzini.neck.set_position(h)
                 print(f"setting neck to {h}")
 
 
@@ -1144,9 +1026,9 @@ async def main():
         manager = client.filtered_messages("putzini/neck")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/neck")
-        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.move)))
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_position)))
 
-        manager = client.filtered_messages("putzini/neck_zero")
+        manager = client.filtered_messages("putzini/neck_pos")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/neck")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.neck.set_zero)))
