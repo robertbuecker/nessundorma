@@ -9,6 +9,8 @@ class PutziniConfig:
         self.tag_name = 'd'
         self.anchor_x = (10, 20, 30)
         self.anchor_y = (40, 50, 60)
+        self.waypoint_x = (10, 20, 30)
+        self.waypoint_y = (40, 50, 60)
         self.nav_update_rate = 20
         self.bno055_calib = {'a': 1, 'b': 2, 'c': 3}
         self.room_rotation = 0

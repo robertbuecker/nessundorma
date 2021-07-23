@@ -1,6 +1,8 @@
 anchor_names: !!python/tuple [B4DE, B4D3, B4D9]
 anchor_x: !!python/tuple [400, 400, 60]
 anchor_y: !!python/tuple [-260, 150, 0]
+waypoint_x: !!python/tuple [190, 190, -210, -210]
+waypoint_y: !!python/tuple [190, -190, -190, 190]
 bno055_calib:
   off_acc: !!python/tuple [14, -4, -41]
   off_gyr: !!python/tuple [-3, 0, 0]

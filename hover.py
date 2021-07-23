@@ -305,7 +305,7 @@ class KeepoutError(Exception):
         if current_pos is not None:
             self.message += f'at {tuple(round(c*100,1) for c in current_pos)} cm'
         if target_pos is not None:
-            self.message += f'going to {tuple(round(c*100,1) for c in target_pos)} cm'
+            self.message += f' going to {tuple(round(c*100,1) for c in target_pos)} cm'
         if mqtt_client is not None:
             asyncio.ensure_future(mqtt_client.publish("putzini/error", self.message))
         super().__init__(self.message)
@@ -490,7 +490,7 @@ class PutziniNav2:
             self.distances[N_valid >= 2] = avg[N_valid >= 2]   
             # print(self.distances)
 
-            include_z = True
+            include_z = False
             t0 = time.time()
 
             if include_z:
@@ -504,7 +504,7 @@ class PutziniNav2:
 
             else:
                 def error(x):
-                    dist_err = ((self.anchor_pos - np.concatenate([x.reshape(1,2), np.zeros((1,1))], axis=1))**2).sum(axis=1)**.5 - self.distances
+                    dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
                     # print((dist_err**2/dist**2))
                     f = (dist_err**2/self.distances).sum()
                     return f
@@ -754,6 +754,18 @@ class Putzini:
             except KeepoutError as err:
                 print(f'Random move is impossible: {err}')
                 pass
+            
+    async def move_circle(self, speed=60, exit_x=None, exit_y=None):
+        speed = int(speed)
+        N_steps = len(self.config.waypoint_x)
+        waypoints = np.stack([self.config.waypoint_x, self.config.waypoint_y]).T/100
+        distances = ((self.nav.get_position().reshape(1,2) - waypoints)**2).sum(axis=1)**.5
+        cur_step = np.argmin(distances)
+        print(f'Starting circle with {N_steps} waypoints. Distances are {distances}; closest point is {cur_step}')
+        while True:
+            print(f'Moving to step {cur_step} at {waypoints[cur_step,:]}')
+            await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], speed=speed, accuracy=20)
+            cur_step = (cur_step + 1) % N_steps
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
         #TODO CATCH INVALID END COORDINATE
@@ -1018,6 +1030,11 @@ async def main():
         await client.subscribe("putzini/move_absolute")
         tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.move_absolute)))
         
+        manager = client.filtered_messages("putzini/move_circle")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/move_circle")
+        tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.move_circle)))
+
         manager = client.filtered_messages("putzini/head")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/head")
