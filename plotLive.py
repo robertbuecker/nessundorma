@@ -221,8 +221,8 @@ class MainWindow(QtGui.QWidget):
 
         # START PLOTS ---
         self.pos_coord = self.plot_widget.addPlot(title="In-plane (color: angle)", row=0, col=0)
-        self.pos_coord.setAspectLocked(True, ratio=1)
         self.pos_coord.setRange(yRange=self.opts.range_y, xRange=self.opts.range_x)
+        self.pos_coord.setAspectLocked(True, ratio=1)
         self.pos_coord.setLabel('left', "Y", units='cm')
         self.pos_coord.setLabel('bottom', "X", units='cm')    
         self.all_points = pg.ScatterPlotItem(size=10)
@@ -290,7 +290,7 @@ class MainWindow(QtGui.QWidget):
         look_at.returnPressed.connect(lambda: self.command('move', f'lookAtPos({look_at.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Look at'), look_at)     
 
-        random_rng = QtGui.QLineEdit('-1000, 1000, -1000, 1000')
+        random_rng = QtGui.QLineEdit(f'{self.opts.range_x[0]}, {self.opts.range_x[1]}, {self.opts.range_y[0]}, {self.opts.range_y[1]}')
         random_rng.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+,\s*-?\d+')))
         self.control_layout.addRow(QtGui.QLabel('Rnd Range'), random_rng)     
                 
