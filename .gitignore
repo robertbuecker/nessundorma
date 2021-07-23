@@ -10,3 +10,4 @@ opera_data
 *-checkpoint.ipynb
 *-checkpoint.py
 .ipynb_checkpoints
+!launch.json

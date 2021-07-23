@@ -1,0 +1,62 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Aktuelle Datei",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Make JSON",
+            "type": "python",
+            "request": "launch",
+            "program": "tbl2json.py",
+            "console": "integratedTerminal",
+            "args": [
+                "https://docs.google.com/spreadsheets/d/1cTVTUAAv6rOKKnQBwJ-0xe22A099qP58Q5T8udukMVk",
+                "story.json"
+            ]
+        },
+        {
+            "name": "Start music",
+            "type": "python",
+            "request": "launch",
+            "program": "control_music.py",
+            "console": "integratedTerminal",
+            "args": []
+        }
+        {
+            "name": "Putzini monitor",
+            "type": "python",
+            "request": "launch",
+            "program": "plotLive.py",
+            "console": "integratedTerminal",
+            "args": []
+        }        
+        {
+            "name": "Putzini position",
+            "type": "python",
+            "request": "launch",
+            "program": "putzini_position.py",
+            "console": "integratedTerminal",
+            "args": []
+        }           
+        {
+            "name": "Sequencer",
+            "type": "python",
+            "request": "launch",
+            "program": "sequencer.py",
+            "console": "integratedTerminal",
+            "args": [
+                "0",
+                "https://docs.google.com/spreadsheets/d/1eL5SeBSRI3zesDSkMZZxjDXA-7S3DDFXzgmO4eSncLY"
+            ]
+            // "args": ["0"]
+        }
+    ]
+}

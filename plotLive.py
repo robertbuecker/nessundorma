@@ -22,6 +22,10 @@ pg.setConfigOptions(antialias=True)
 
 import paho.mqtt.client as mqtt
 
+class PutziniError(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 class MqttClient(QtCore.QObject):
     Disconnected = 0
     Connecting = 1
@@ -42,6 +46,7 @@ class MqttClient(QtCore.QObject):
 
     messageSignal = QtCore.pyqtSignal(str)
     voltageSignal = QtCore.pyqtSignal(float)
+    errorSignal = QtCore.pyqtSignal(PutziniError)
 
     def __init__(self, parent=None):
         super(MqttClient, self).__init__(parent)
@@ -60,7 +65,6 @@ class MqttClient(QtCore.QObject):
         self.m_client.on_connect = self.on_connect
         self.m_client.on_message = self.on_message
         self.m_client.on_disconnect = self.on_disconnect
-
 
     @QtCore.pyqtProperty(int, notify=stateChanged)
     def state(self):
@@ -149,6 +153,9 @@ class MqttClient(QtCore.QObject):
             mstr = msg.payload.decode("utf-8")
             # print("on_message", mstr, obj, mqttc)
             self.messageSignal.emit(mstr)
+        elif msg.topic == 'putzini/error':
+            mstr = msg.payload.decode('utf-8')
+            self.errorSignal.emit(PutziniError(mstr))
         else:
             print(msg.topic, msg.payload)
             mstr = float(msg.payload.decode("utf-8"))
@@ -186,7 +193,7 @@ _mos = np.asarray([
 my_symbol = pg.arrayToQPath(_mos[:, 0], _mos[:, 1], connect='all')
 
 tilt_fig = False
-jitter_limit = 0.005 # in m
+jitter_limit = 0.01 # in m
 
 class MainWindow(QtGui.QWidget):
     def __init__(self):
@@ -222,11 +229,15 @@ class MainWindow(QtGui.QWidget):
         # STOP PLOTS ---
         
         # START CONTROLS ---
-        self.control_layout = QtGui.QFormLayout()
+        self.control_layout = QtGui.QFormLayout(verticalSpacing=1)
         
         self.update_graph = QtGui.QCheckBox('Update Graph')
         self.update_graph.setChecked(True)
         self.control_layout.addRow(self.update_graph)
+        
+        self.keep_traces = QtGui.QCheckBox('Keep Traces')
+        self.keep_traces.setChecked(False)
+        self.control_layout.addRow(self.keep_traces)        
         
         move_command = QtGui.QLineEdit('stop()')
         move_command.returnPressed.connect(lambda: self.command('move', move_command.text()))
@@ -270,7 +281,12 @@ class MainWindow(QtGui.QWidget):
         random.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
         random.returnPressed.connect(lambda: self.command('move', f'moveRandom({random.text()},{random_rng.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Zigzag'), random)   
-                        
+        
+        override = QtGui.QCheckBox('Override Keepout')
+        override.stateChanged.connect(lambda state: self.client.m_client.publish('putzini/override', '1' if int(state)==2 else '0'))
+        override.setChecked(False)
+        self.control_layout.addRow(override)   
+                                
         stop = pg.QtGui.QPushButton('STOP')
         stop.clicked.connect(lambda: self.command('move', 'stop()'))
         self.control_layout.addRow(stop)    
@@ -331,7 +347,16 @@ class MainWindow(QtGui.QWidget):
                           
         self.battery_indicator = QtGui.QLineEdit(readOnly=True)
         self.control_layout.addRow(QtGui.QLabel('Battery'), self.battery_indicator)
+
+        random.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+')))
+        random.returnPressed.connect(lambda: self.command('move', f'moveRandom({random.text()},{random_rng.text()})'))
         
+        self.last_err = QtGui.QLineEdit(readOnly=True)
+        clear = pg.QtGui.QPushButton('Clear Errors')
+        clear.clicked.connect(self.last_err.clear)      
+        self.control_layout.addRow(QtGui.QLabel('Last Error'), clear)  
+        self.control_layout.addRow(self.last_err)
+                
         self.last_cmd = QtGui.QTextEdit(readOnly=True, width=10)
         self.control_layout.addRow(self.last_cmd)        
         self.last_cmd.resize(QtCore.QSize(4,4))
@@ -340,11 +365,11 @@ class MainWindow(QtGui.QWidget):
         self.top_layout.addLayout(self.control_layout, 0, 1)
         # END CONTROLS ---
         
-
         self.client = MqttClient(self)
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
         self.client.voltageSignal.connect(self.on_voltageSignal)
+        self.client.errorSignal.connect(self.on_errorSignal)
 
         self.client.hostname = "172.31.1.150"
         self.client.connectToHost()
@@ -369,11 +394,17 @@ class MainWindow(QtGui.QWidget):
             print(state)
             self.client.subscribe("putzini/position")
             self.client.subscribe("putzini/v_batt")
+            self.client.subscribe("putzini/error")
 
     @QtCore.pyqtSlot(float)
     def on_voltageSignal(self, voltage):
         self.battery_indicator.setText(f'{voltage:.2f} V')
 
+    @QtCore.pyqtSlot(PutziniError)
+    def on_errorSignal(self, error):
+        self.last_err.setText(f'{error}')
+        print(error)
+        
     @QtCore.pyqtSlot(str)
     def on_messageSignal(self, msg):
         
@@ -401,11 +432,17 @@ class MainWindow(QtGui.QWidget):
                 angle_rot = tr.rotate(-inplane + 180)
                 my_rotated_symbol = angle_rot.map(my_symbol)
                 col = pg.hsvColor((inplane+180)/360)
-                self.all_points.addPoints([{'pos': T[:-1]*100, 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
-                                            'symbol': my_rotated_symbol, 'size': 10}])
+
+                if self.keep_traces.isChecked():
+                    self.all_points.addPoints([{'pos': T[:-1]*100, 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
+                                                'symbol': 'o', 'size': 5}])
+                else:
+                    self.all_points.clear()
+                
                 # self.current_point.clear()
                 self.current_point.setData([{'pos': T[:-1]*100, 'data': 1, 'brush':pg.mkBrush(col), 
                                             'symbol': my_rotated_symbol, 'size': 30}], clear=True)    
+                                                    
                 if tilt_fig:
                     # self.tilt_current_point.clear()
                     self.tilt_current_point.setData([{'pos': angles[:2], 'data': 1, 'brush':pg.mkBrush(col), 
