@@ -50,6 +50,11 @@ import time
 from scipy.optimize import minimize
 import board
 import adafruit_bno055
+from contextlib import contextmanager
+
+from putzini_lamp import PutziniLamp
+from putzini_config import PutziniConfig
+from inspect import isawaitable
 
 class PutziniState:
     def __init__(self, mqtt_client):
@@ -75,71 +80,6 @@ class PutziniState:
         
     def publish(self):
         asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0]}), qos=0))  
-
-class PutziniConfig:
-
-    def __init__(self, mqtt_client):
-        self._mqtt_client = mqtt_client
-        self.range_x = (0, 0)
-        self.range_y = (0, 0)
-        self.anchor_names = ('a', 'b', 'c')
-        self.tag_name = 'd'
-        self.anchor_x = (10, 20, 30)
-        self.anchor_y = (40, 50, 60)
-        self.nav_update_rate = 20
-        self.bno055_calib = {'a': 1, 'b': 2, 'c': 3}
-        self.room_rotation = 0
-        self.arka_radius = 100
-        self.keepout_img = 'keepout.tiff'
-        try:
-            self.from_yaml()
-        except FileNotFoundError:
-            print('putzini.yaml not found, initializing one...')
-            self.to_yaml()
-
-    def to_yaml(self):
-        opts = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
-        print(opts)
-        yaml.dump(opts, open('putzini.yaml', 'w'))
-
-    def from_yaml(self):
-        opts = yaml.load(open('putzini.yaml', 'r'))
-        print(opts)
-        for k, v in opts.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                print(f'Option {k} in yaml file is not recognized.')
-
-class PutziniLamp:
-    def __init__(self):
-        self.l = {"back":{"r":255,"g":255,"b":100},"front":{"r":0,"g":1,"b":0,"w":0}}
-        self.h = 127
-        pass
-
-    async def connect(self, url = '/dev/serial/by-path/platform-70090000.xusb-usb-0:2.3:1.0-port0'):
-        _ , self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=115200)
-        asyncio.ensure_future(self._writer_task())
-    
-    async def _writer_task(self):
-        while True:
-            await asyncio.sleep(100e-3)
-            frame = struct.pack("BBBB",self.h,self.l["back"]["r"],self.l["back"]["g"],self.l["back"]["b"])
-            for x in range(0,12):
-                frame += struct.pack("BBBB",self.l["front"]["r"],self.l["front"]["g"],self.l["front"]["b"],self.l["front"]["w"])
-            
-            self.writer.write(frame)
-    
-    def set_lamp(self,l):
-        if "front" in l:
-            self.l["front"] = l["front"]
-        if "back" in l:
-            self.l["back"] = l["back"]
-    
-    def set_head(self, h):
-        print('Trying to set head to', h)
-        self.h = int(h)
-
 
 class PutziniNeckAndVacuum:
     def __init__(self):
@@ -482,15 +422,13 @@ class KeepoutError(Exception):
     def __init__(self, message='', current_pos=None, target_pos=None, mqtt_client=None):
         self.current_pos = current_pos
         self.target_pos = target_pos
-        self.message = ''
+        self.message = 'Keepout error ' if not message else message
         if current_pos is not None:
-            self.message = f'At {current_pos} '
+            self.message += f'at {tuple(round(c*100,1) for c in current_pos)} cm'
         if target_pos is not None:
-            self.message += f'going to {target_pos} '
-        if message:
-            self.message += message
+            self.message += f'going to {tuple(round(c*100,1) for c in target_pos)} cm'
         if mqtt_client is not None:
-            asyncio.ensure_future(mqtt_client.publish("putzini/error", 'Keepout error: ' + self.message))
+            asyncio.ensure_future(mqtt_client.publish("putzini/error", self.message))
         super().__init__(self.message)
 
 class PutziniKeepoutArea:
@@ -526,6 +464,27 @@ class PutziniKeepoutArea:
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
                 raise KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
+
+    def override(self, func):
+        def move_without_limits(*args, **kwargs):
+            stp = self.stop
+            try:
+                self.stop = False
+                print(f'Force keepout: {self.stop}')
+                func(*args, **kwargs)
+            finally:
+                self.stop = stp
+                print(f'Force keepout: {self.stop}')
+
+        return move_without_limits
+
+    def set_override(self, value):
+        if int(value):
+            print('Deactivating Putzini interlock!')
+            self.stop = False
+        else:
+            print('Activating Putzini interlock!')
+            self.stop = True
 
 class PutziniNav2:
     # Anchor-based system
@@ -675,7 +634,7 @@ class PutziniNav2:
             try:
                 self.keepout.validate(self.position[0], self.position[1])
             except KeepoutError as err:
-                print(f'Encountered keepout error: {err}')
+                print(err)
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
             # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
@@ -772,7 +731,7 @@ class PutziniNav2:
 
 class Putzini:
     def __init__(self, mqtt_client):
-        self.config = PutziniConfig(mqtt_client)
+        self.config = PutziniConfig()
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
         self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
@@ -915,6 +874,7 @@ class Putzini:
                 pass
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
+        #TODO CATCH INVALID END COORDINATE
         distance, xmin, xmax, ymin, ymax = (int(p) / 100 for p in (distance, xmin, xmax, ymin, ymax))
         dist_putz = self.putz_per_meter*distance
         final_pos = self.nav.get_position() + [np.cos(self.nav.get_angle()*np.pi/180)*distance, np.sin(self.nav.get_angle()*np.pi/180)*distance]
@@ -1111,9 +1071,19 @@ async def main():
     client = mqtt.Client("172.31.1.150")
     putzini = Putzini(client)
 
-    
+    async def move_without_limits(*args, **kwargs):
+        stp = putzini.keepout.stop
+        try:
+            putzini.keepout.stop = False
+            print(f'Force keepout: {putzini.keepout.stop}')
+            putzini.drive.move(*args, **kwargs)
+            await putzini.keepout.drive.finished
+        finally:
+            putzini.keepout.stop = stp
+            print(f'Force keepout: {putzini.keepout.stop}')
+
     async with AsyncExitStack() as stack:
-        
+
         tasks = set()
 
         await stack.enter_async_context(client)
@@ -1133,6 +1103,7 @@ async def main():
         manager = client.filtered_messages("putzini/move")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/move")
+        # tasks.add(asyncio.ensure_future(await_func_with_msg(messages, move_without_limits)))
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.drive.move)))
         
         manager = client.filtered_messages("putzini/turn")
@@ -1140,6 +1111,11 @@ async def main():
         await client.subscribe("putzini/turn")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.drive.turn)))
         
+        manager = client.filtered_messages("putzini/override")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/override")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.keepout.set_override)))
+
         manager = client.filtered_messages("putzini/set_speed_r")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/set_speed_r")
@@ -1163,7 +1139,7 @@ async def main():
         manager = client.filtered_messages("putzini/head")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/head")
-        # tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.lamp.set_head)))
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.lamp.set_head)))
         
         manager = client.filtered_messages("putzini/neck")
         messages = await stack.enter_async_context(manager)
