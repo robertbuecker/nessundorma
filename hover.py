@@ -69,7 +69,8 @@ class PutziniState:
         
     def set_idle(self, move_task=None):
         if (move_task is not None) and (move_task.exception() is not None):
-            raise move_task.exception()
+            # raise move_task.exception()
+            print(move_task.exception())
         self.action = "Idle"
         self.publish()
         
@@ -305,7 +306,7 @@ class KeepoutError(Exception):
         if current_pos is not None:
             self.message += f'at {tuple(round(c*100,1) for c in current_pos)} cm'
         if target_pos is not None:
-            self.message += f'going to {tuple(round(c*100,1) for c in target_pos)} cm'
+            self.message += f' going to {tuple(round(c*100,1) for c in target_pos)} cm'
         if mqtt_client is not None:
             asyncio.ensure_future(mqtt_client.publish("putzini/error", self.message))
         super().__init__(self.message)
@@ -314,8 +315,10 @@ class PutziniKeepoutArea:
 
     def __init__(self, mqtt_client, putzini_config: PutziniConfig, putzini_drive: PutziniDrive = None):
         # the image should have 1px per mm
-        self.img = 255-imageio.imread(putzini_config.keepout_img)
-        self.ref = self.img.shape[0]/2, self.img.shape[1]/2
+        img = imageio.imread(putzini_config.keepout_img)
+        self.keepout_map = (img == 0)
+        self.forbid_map = (img != 255)
+        self.ref = self.keepout_map.shape[0]/2, self.keepout_map.shape[1]/2
         self.drive = putzini_drive
         self.fac = 100 # set to 100 if parameters are supposed to be meters
         self.stop = True
@@ -323,14 +326,31 @@ class PutziniKeepoutArea:
         
     def is_point_keepout(self, x, y):
         Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
-        if (X < 0) or (X >= self.img.shape[1]) or (Y < 0) or (Y >= self.img.shape[1]):
+        if (X < 0) or (X >= self.keepout_map.shape[1]) or (Y < 0) or (Y >= self.keepout_map.shape[1]):
             return True
 
-        return self.img[Y, X] > 0
+        return self.keepout_map[Y, X] > 0
+        
+    def is_point_forbidden(self, x, y):
+        Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
+        if (X < 0) or (X >= self.forbid_map.shape[1]) or (Y < 0) or (Y >= self.forbid_map.shape[1]):
+            return True
+
+        return self.forbid_map[Y, X] > 0
 
     def is_line_keepout(self, x1, y1, x2, y2):
         x, y = np.linspace(x1, x2, 1000), np.linspace(y1, y2, 1000)
-        return np.sum(self.img[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+        try:
+            return np.sum(self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+        except IndexError:
+            return True
+
+    def is_line_forbidden(self, x1, y1, x2, y2):
+        x, y = np.linspace(x1, x2, 1000), np.linspace(y1, y2, 1000)
+        try:
+            return np.sum(self.forbid_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+        except IndexError:
+            return True
 
     def validate(self, x1, y1, x2=None, y2=None, override_stop=False):
         if (x2 is not None) and (y2 is not None):
@@ -490,7 +510,7 @@ class PutziniNav2:
             self.distances[N_valid >= 2] = avg[N_valid >= 2]   
             # print(self.distances)
 
-            include_z = True
+            include_z = False
             t0 = time.time()
 
             if include_z:
@@ -504,7 +524,7 @@ class PutziniNav2:
 
             else:
                 def error(x):
-                    dist_err = ((self.anchor_pos - np.concatenate([x.reshape(1,2), np.zeros((1,1))], axis=1))**2).sum(axis=1)**.5 - self.distances
+                    dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
                     # print((dist_err**2/dist**2))
                     f = (dist_err**2/self.distances).sum()
                     return f
@@ -632,16 +652,16 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        l = asyncio.ensure_future(self.lamp.connect())
+        # l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
           
-        await asyncio.gather(d, n, l, m)
-        #await asyncio.gather(d, n, m)
+        # await asyncio.gather(d, n, l, m)
+        await asyncio.gather(d, n, m)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
 
-        print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
+        # print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
         fudge = 1
         prev_a = 0
         close_to_target = False
@@ -661,7 +681,7 @@ class Putzini:
                 fudge = max(0.1,fudge*0.7)
             prev_a = a
 
-            print(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
+            # print(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
 
             if abs(a) < slow_angle:
                 speed = min(speed,50)
@@ -703,7 +723,7 @@ class Putzini:
         print (f"Look from {start} at {end}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
-    async def move_absolute(self, x, y=0, speed=60, accuracy=10):
+    async def move_absolute(self, x, y=0, speed=60, accuracy=10, evade=True):
         #TODO adaptive rotation accuracy
         x= int(x) / 100
         y= int(y) / 100
@@ -714,7 +734,13 @@ class Putzini:
             end = np.array([x,y])
 
             # print(start, end)
-            self.keepout.validate(start[0], start[1], end[0], end[1])
+            if self.keepout.is_line_forbidden(start[0], start[1], end[0], end[1]):
+                # raise KeepoutError(f'Absolute move to {end} forbidden.', current_pos=start, target_pos=end, mqtt_client=self.mqtt_client)
+                if evade:
+                    print(f'Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
+                    await self.move_circle(speed=speed, stride=2, exit_x=x*100, exit_y=y*100)
+                else:
+                    raise KeepoutError(f'Absolute move to {end} forbidden.', current_pos=start, target_pos=end, mqtt_client=self.mqtt_client)
 
             diff = end-start
             distance = np.linalg.norm(diff)
@@ -732,7 +758,6 @@ class Putzini:
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
             await self.drive.finished
 
-
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
         y = int(y)/100
@@ -742,7 +767,7 @@ class Putzini:
         final_pos = cur_pos + delta
         print(f'Relative move from {cur_pos} by [{x}, {y}] w.r.t. Putzini.')
         print(f'Results in absolute move by {delta} to {final_pos}.')
-        await self.move_absolute(final_pos[0]*100, final_pos[1]*100, speed=speed, accuracy=accuracy)
+        await self.move_absolute(final_pos[0]*100, final_pos[1]*100, speed=speed, accuracy=accuracy, evade=False)
             
     async def move_random(self, speed=60, xmin=0, xmax=0, ymin=0, ymax=0):
         while True:
@@ -750,10 +775,28 @@ class Putzini:
             next_y = random.randint(ymin, ymax)
             print(f'Random step to {next_x}, {next_y}, speed: {speed}')
             try:
-                await self.move_absolute(next_x, next_y, speed, accuracy=40)
+                await self.move_absolute(next_x, next_y, speed, accuracy=40, evade=False)
             except KeepoutError as err:
-                print(f'Random move is impossible: {err}')
+                print(f'Random move is impossible: {err}. Trying another...')
                 pass
+            
+    async def move_circle(self, speed=60, stride=1, exit_x=None, exit_y=None):
+        speed = int(speed)
+        N_steps = len(self.config.waypoint_x)
+        waypoints = np.stack([self.config.waypoint_x, self.config.waypoint_y]).T/100
+        distances = ((self.nav.get_position().reshape(1,2) - waypoints)**2).sum(axis=1)**.5
+        cur_step = np.argmin(distances)
+        print(f'Starting circle with {N_steps} waypoints. Distances are {distances}; closest point is {cur_step}')
+        while True:
+            print(f'Moving to step {cur_step} at {waypoints[cur_step,:]}')
+            await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], speed=speed, accuracy=40)
+            cur_step = (cur_step + stride) % N_steps
+            if (exit_x is not None) and (exit_y is not None):
+                pos = self.nav.get_position()
+                if not self.keepout.is_line_forbidden(pos[0], pos[1], exit_x/100., exit_y/100.):
+                    print(f'Path to exit position {exit_x}, {exit_y} is open. Moving there and stopping.')
+                    await self.move_absolute(exit_x, exit_y, speed=speed, accuracy=10)
+                    break
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
         #TODO CATCH INVALID END COORDINATE
@@ -930,7 +973,13 @@ async def parse_json_commands(messages, putzini: Putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     putzini.state.set_active()
-                    move_task = asyncio.ensure_future(putzini.turn_forever(*pp))                                                        
+                    move_task = asyncio.ensure_future(putzini.turn_forever(*pp))    
+                elif cmd["move"].startswith("moveCircle"):
+                    pp = parse_command("moveCircle", 2, cmd["move"])
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    putzini.state.set_active()
+                    move_task = asyncio.ensure_future(putzini.move_circle(*pp))                                                                            
                 elif cmd["move"].startswith("setReferencePos"):
                     pp = parse_command("setReferencePos", 2, cmd["move"])
                     move_task.cancel()
@@ -1017,7 +1066,7 @@ async def main():
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/move_absolute")
         tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.move_absolute)))
-        
+
         manager = client.filtered_messages("putzini/head")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/head")
@@ -1055,6 +1104,6 @@ async def main():
         
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()      
-    loop.set_debug(True)
+    # loop.set_debug(True)
     loop.run_until_complete(main())
     loop.close()
