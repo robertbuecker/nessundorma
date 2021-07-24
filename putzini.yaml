@@ -16,3 +16,4 @@ room_rotation: -80
 arka_radius: 100
 tag_name: B521
 keepout_img: fsp.tiff
+minimum_calib_level: 0
