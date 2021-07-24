@@ -439,38 +439,39 @@ class PutziniNav2:
         i2c.init(board.SCL_1,board.SDA_1, 800)
         self.sensor = adafruit_bno055.BNO055_I2C(i2c)
         print('I2C orientation sensor connected. Sending calibrations...')
-        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
-                            'off_gyr': self.sensor.offsets_gyroscope,
-                            'off_mag': self.sensor.offsets_magnetometer,
-                            'rad_mag': self.sensor.radius_magnetometer,
-                            'rad_acc': self.sensor.radius_accelerometer}   
-        print(self.calibration)
-        self.calibration.update(self.config.bno055_calib)             
-        print(self.calibration)
-        self.sensor.mode = adafruit_bno055.CONFIG_MODE
-        self.sensor.offsets_accelerometer = self.calibration['off_acc']
-        self.sensor.offsets_gyroscope = self.calibration['off_gyr']
-        self.sensor.offsets_magnetometer = self.calibration['off_mag']
-        self.sensor.radius_accelerometer = self.calibration['rad_acc']
-        self.sensor.radius_magnetometer = self.calibration['rad_mag']
-
-        # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
-        self.sensor.mode = adafruit_bno055.NDOF_MODE
-        print('Orientation sensor started.')
-
-        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
-                            'off_gyr': self.sensor.offsets_gyroscope,
-                            'off_mag': self.sensor.offsets_magnetometer,
-                            'rad_mag': self.sensor.radius_magnetometer,
-                            'rad_acc': self.sensor.radius_accelerometer}        
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
+        self.read_calibration_from_sensor()
+        self.write_calibration_to_sensor(reset=True)
+        print('Orientation sensor started.')    
 
         # Position sensor
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
         print('Master position module connected.')     
         asyncio.ensure_future(self._reader_task())
         await self.start_ranging()
+
+    async def read_calibration_from_sensor(self):
+        self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
+                            'off_gyr': self.sensor.offsets_gyroscope,
+                            'off_mag': self.sensor.offsets_magnetometer,
+                            'rad_mag': self.sensor.radius_magnetometer,
+                            'rad_acc': self.sensor.radius_accelerometer}
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+
+    async def write_calibration_to_sensor(self, calib=None, reset=False):
+        calib = self.calibration if calib is None else calib
+        if reset:
+            calib.update(self.config.bno055_calib)    
+        self.sensor.mode = adafruit_bno055.CONFIG_MODE
+        self.sensor.offsets_accelerometer = calib['off_acc']
+        self.sensor.offsets_gyroscope = calib['off_gyr']
+        self.sensor.offsets_magnetometer = calib['off_mag']
+        self.sensor.radius_accelerometer = calib['rad_acc']
+        self.sensor.radius_magnetometer = calib['rad_mag']
+        # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
+        self.sensor.mode = adafruit_bno055.NDOF_MODE     
+        await self.read_calibration_from_sensor()   
+
             
     async def start_ranging(self):
         await self.stop_ranging()
@@ -558,16 +559,17 @@ class PutziniNav2:
                         'a': self.sensor.acceleration}
 
             asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+
+            cstat = self.sensor.calibration_status
+            if self.calibrated != cstat:
+                self.calibrated = cstat
+                if cstat[0] < 2:
+                    asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
+                    self.write_calibration_to_sensor(reset=False)
+                self.read_calibration_from_sensor()
+            
             asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
-            if self.calibrated != self.sensor.calibration_status:
-                self.calibrated = self.sensor.calibration_status
-                self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
-                            'off_gyr': self.sensor.offsets_gyroscope,
-                            'off_mag': self.sensor.offsets_magnetometer,
-                            'rad_mag': self.sensor.radius_magnetometer,
-                            'rad_acc': self.sensor.radius_accelerometer}
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
 
     async def _reader_task(self):
         msg=b''
@@ -652,11 +654,11 @@ class Putzini:
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
         n = asyncio.ensure_future(self.nav.connect())
-        # l = asyncio.ensure_future(self.lamp.connect())
+        l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
           
-        # await asyncio.gather(d, n, l, m)
-        await asyncio.gather(d, n, m)
+        await asyncio.gather(d, n, l, m)
+        # await asyncio.gather(d, n, m)
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
