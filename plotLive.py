@@ -466,7 +466,7 @@ class MainWindow(QtGui.QWidget):
                 plot_dat = []
                 for lbl, x, y, d in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y, dist):
                 # self.anchors.clear()   
-                    self.anchors[lbl].setData(x=[x], y=[y], brush=None, pen=pg.mkPen((100,100,100,90), width=6), pxMode=False, size=2*d)
+                    self.anchors[lbl].setData(x=[x], y=[y], brush=None, pen=pg.mkPen((200,100,100,90), width=6), pxMode=False, size=2*d)
                     
                 #     plot_dat.append({'pos': (x, y),
                 #                     'size': d,
