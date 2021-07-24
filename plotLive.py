@@ -497,7 +497,8 @@ class MainWindow(QtGui.QWidget):
                 col = pg.hsvColor((inplane+180)/360)
             
                 with np.printoptions(precision=2, suppress=True):
-                    print(f'Pos: {T}, Euler XYZ: {(angles)}, In-plane: {inplane}')
+                    # print(f'Pos: {T}, Euler XYZ: {(angles)}, In-plane: {inplane}')
+                    pass
                     
                 if self.keep_traces.isChecked():
                     self.all_points.addPoints([{'pos': T[:-1]*100, 'data': 1, 'brush': None, 'pen': pg.mkPen(col),
