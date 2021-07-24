@@ -304,6 +304,11 @@ class MainWindow(QtGui.QWidget):
         random.returnPressed.connect(lambda: self.command('move', f'moveRandom({random.text()},{random_rng.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Zigzag'), random)   
         
+        circle = QtGui.QLineEdit('50, 1') # speed, direction
+        circle.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('\d+,\s*\d+')))
+        circle.returnPressed.connect(lambda: self.command('move', f'moveCircle({circle.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Circle'), circle)   
+                
         override = QtGui.QCheckBox('Override Keepout')
         override.stateChanged.connect(lambda state: self.client.m_client.publish('putzini/override', '1' if int(state)==2 else '0'))
         override.setChecked(False)
