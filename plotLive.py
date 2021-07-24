@@ -18,6 +18,7 @@ import io
 import json
 import yaml
 from ast import literal_eval
+from imageio import imread
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
@@ -228,10 +229,16 @@ class MainWindow(QtGui.QWidget):
         self.all_points = pg.ScatterPlotItem(size=10)
         self.current_point = pg.ScatterPlotItem(size=30)
         self.anchors = {}
+        mapimg = imread(self.opts.keepout_img)
+        self.map = pg.ImageItem()
+        self.map.setImage(image=mapimg.T)
+        self.map.setPxMode(False)
+        self.map.setRect(QtCore.QRect(-mapimg.shape[1]//2, -mapimg.shape[0]//2, mapimg.shape[0], mapimg.shape[1]))
+        self.pos_coord.addItem(self.map)
         for lbl, x, y in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y):
             self.anchors[lbl] = pg.ScatterPlotItem(size=10, symbol='o')
             self.pos_coord.addItem(self.anchors[lbl])
-            self.anchors[lbl].addPoints(x=[x], y=[y], brush=None, pen='w', pxMode=False, size=10)
+            self.anchors[lbl].addPoints(x=[x], y=[y], brush=None, pen='k', pxMode=False, size=10)
         print(self.anchors)
         self.arka = pg.ScatterPlotItem(size=10, symbol='o', pxMode=False)
         # for lbl, x, y in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y):
@@ -459,7 +466,7 @@ class MainWindow(QtGui.QWidget):
                 plot_dat = []
                 for lbl, x, y, d in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y, dist):
                 # self.anchors.clear()   
-                    self.anchors[lbl].setData(x=[x], y=[y], brush=None, pen='w', pxMode=False, size=2*d)
+                    self.anchors[lbl].setData(x=[x], y=[y], brush=None, pen=pg.mkPen((100,100,100,90), width=6), pxMode=False, size=2*d)
                     
                 #     plot_dat.append({'pos': (x, y),
                 #                     'size': d,
