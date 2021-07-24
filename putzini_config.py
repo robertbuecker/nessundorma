@@ -16,6 +16,7 @@ class PutziniConfig:
         self.room_rotation = 0
         self.arka_radius = 100
         self.keepout_img = 'keepout.tiff'
+        self.minimum_calib_level = 0
         try:
             self.from_yaml()
         except FileNotFoundError:

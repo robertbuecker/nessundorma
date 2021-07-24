@@ -55,6 +55,7 @@ from contextlib import contextmanager
 from putzini_lamp import PutziniLamp
 from putzini_config import PutziniConfig
 from inspect import isawaitable
+import csv
 
 class PutziniState:
     def __init__(self, mqtt_client):
@@ -70,7 +71,8 @@ class PutziniState:
     def set_idle(self, move_task=None):
         if (move_task is not None) and (move_task.exception() is not None):
             # raise move_task.exception()
-            print(move_task.exception())
+            if not isinstance(move_task.exception(), asyncio.CancelledError):
+                print(move_task.exception())
         self.action = "Idle"
         self.publish()
         
@@ -275,9 +277,17 @@ class PutziniSound:
             self.play_obj = None
 
         print(f'Loading wave file {fn}...')
-        assert subprocess.run(['pactl', 'set-sink-volume', self.dev, f'{int(vol)}%']).returncode == 0            
         self.wave = sa.WaveObject.from_wave_file(fn)
+
+        fn_lbl = fn.rsplit('.', 1)[0] + '.txt'
+        if os.path.isfile(fn_lbl):
+            print(f'Found corresponding label file {fn_lbl}')
+            with open(fn_lbl, newline='') as fh:
+                reader = csv.DictReader(delimiter='\t')
+
+        assert subprocess.run(['pactl', 'set-sink-volume', self.dev, f'{int(vol)}%']).returncode == 0            
         self.play_obj = self.wave.play()
+
         self.fn = ''
 
         while True:
@@ -449,7 +459,7 @@ class PutziniNav2:
         asyncio.ensure_future(self._reader_task())
         await self.start_ranging()
 
-    async def read_calibration_from_sensor(self):
+    def read_calibration_from_sensor(self):
         self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
                             'off_gyr': self.sensor.offsets_gyroscope,
                             'off_mag': self.sensor.offsets_magnetometer,
@@ -458,7 +468,7 @@ class PutziniNav2:
         asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
         asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
-    async def write_calibration_to_sensor(self, calib=None, reset=False):
+    def write_calibration_to_sensor(self, calib=None, reset=False):
         calib = self.calibration if calib is None else calib
         if reset:
             calib.update(self.config.bno055_calib)    
@@ -470,7 +480,7 @@ class PutziniNav2:
         self.sensor.radius_magnetometer = calib['rad_mag']
         # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
         self.sensor.mode = adafruit_bno055.NDOF_MODE     
-        await self.read_calibration_from_sensor()   
+        self.read_calibration_from_sensor()   
 
             
     async def start_ranging(self):
@@ -563,7 +573,8 @@ class PutziniNav2:
             cstat = self.sensor.calibration_status
             if self.calibrated != cstat:
                 self.calibrated = cstat
-                if cstat[0] < 2:
+                if cstat[0] < self.config.minimum_calib_level:
+                    print('Sensor calib off. Reloading from file.')
                     asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
                     self.write_calibration_to_sensor(reset=False)
                 self.read_calibration_from_sensor()
@@ -791,13 +802,14 @@ class Putzini:
         print(f'Starting circle with {N_steps} waypoints. Distances are {distances}; closest point is {cur_step}')
         while True:
             print(f'Moving to step {cur_step} at {waypoints[cur_step,:]}')
-            await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], speed=speed, accuracy=40)
+            await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], 
+                speed=speed, accuracy=40, evade=False)
             cur_step = (cur_step + stride) % N_steps
             if (exit_x is not None) and (exit_y is not None):
                 pos = self.nav.get_position()
                 if not self.keepout.is_line_forbidden(pos[0], pos[1], exit_x/100., exit_y/100.):
                     print(f'Path to exit position {exit_x}, {exit_y} is open. Moving there and stopping.')
-                    await self.move_absolute(exit_x, exit_y, speed=speed, accuracy=10)
+                    await self.move_absolute(exit_x, exit_y, speed=speed, accuracy=10, evade=False)
                     break
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):

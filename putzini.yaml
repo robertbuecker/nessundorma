@@ -1,6 +1,6 @@
 anchor_names: !!python/tuple [B4DE, B4D3, B4D9]
 anchor_x: !!python/tuple [400, 400, 0]
-anchor_y: !!python/tuple [-260, 150, -280]
+anchor_y: !!python/tuple [-260, 260, -280]
 waypoint_x: !!python/tuple [0,     163, 230, 163, 0, -163 ,-230, -163]
 waypoint_y: !!python/tuple [-230, -163, 0  , 163, 230, 163,0, -163]
 bno055_calib:
@@ -16,3 +16,4 @@ room_rotation: -80
 arka_radius: 100
 tag_name: B521
 keepout_img: fsp.tiff
+minimum_calib_level: 0
