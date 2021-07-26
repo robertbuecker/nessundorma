@@ -427,7 +427,8 @@ class PutziniNav2:
 
         self.distances = np.array([0.,0.,0.])
         self.distances_sig = np.array([0.,0.,0.])
-        self._distance_buffer = []
+        self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
+        self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
         self.position = self.anchor_pos.mean(axis=0)
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
@@ -510,16 +511,13 @@ class PutziniNav2:
             self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
             self.timestamp = time.time()
 
-            if len(self._distance_buffer) == 0:
-                # print('Distance buffer is empty. WTF?')
-                continue
-
-            _distances = np.stack(self._distance_buffer)
-            self._distance_buffer = []
-            N_valid = (1-np.isnan(_distances)).sum(axis=0)
-            avg = np.nanmean(_distances, axis=0)
-            self.distances[N_valid >= 2] = avg[N_valid >= 2]   
-            # print(self.distances)
+            for k, v in self._distance_buffer.items():
+                # print(v)
+                self.N_valid[k] =  len(v) - self.config.nav_avg_len
+                if len(v) > self.config.nav_avg_len:
+                    v = v[-self.config.nav_avg_len:]
+                self.distances[self.anchor_idx[k]] = np.mean(v)
+                self._distance_buffer[k] = v
 
             include_z = False
             t0 = time.time()
@@ -554,8 +552,9 @@ class PutziniNav2:
                                     [s,c,0,self.position[1]], 
                                     [0,0,1,self.position[2]], 
                                     [0,0,1,0]])
+            # print(self.N_valid)
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
-                    json.dumps({'N': N_valid.tolist(), 'd': self.distances.round(4).tolist()}),
+                    json.dumps({'N': list(self.N_valid.values()), 'd': self.distances.round(4).tolist()}),
                     # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
                     qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
@@ -573,10 +572,11 @@ class PutziniNav2:
             cstat = self.sensor.calibration_status
             if self.calibrated != cstat:
                 self.calibrated = cstat
-                if cstat[0] < self.config.minimum_calib_level:
-                    print('Sensor calib off. Reloading from file.')
+                if cstat[3] < self.config.minimum_calib_level:
+                    print('Mag calib off. Reloading from file.')
                     asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
                     self.write_calibration_to_sensor(reset=False)
+                    asyncio.sleep(1)
                 self.read_calibration_from_sensor()
             
             asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
@@ -608,11 +608,13 @@ class PutziniNav2:
                     tag_id, a1_dist, a2_dist, a3_dist, udata, _ = par.split(b',',5)
                     d1, d2, d3 = int(a1_dist, 16), int(a2_dist, 16), int(a3_dist, 16)
                     if not d1 == 0:
-                        new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
-                    self._distance_buffer.append(new_dist)
-                except:
+                        self._distance_buffer[tag_id].append(float(d1)/100.)
+                        # new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
+                    # self._distance_buffer.append(new_dist)
+                except Exception as err:
                     print(f'Could not decode distance message: {par}')
-                    pass
+                    # pass
+                    raise err
                                             
             elif cmd == b'$PS':
                 print(f'Ranging started.')
@@ -816,12 +818,14 @@ class Putzini:
         #TODO CATCH INVALID END COORDINATE
         distance, xmin, xmax, ymin, ymax = (int(p) / 100 for p in (distance, xmin, xmax, ymin, ymax))
         dist_putz = self.putz_per_meter*distance
-        final_pos = self.nav.get_position() + [np.cos(self.nav.get_angle()*np.pi/180)*distance, np.sin(self.nav.get_angle()*np.pi/180)*distance]
+        ini_pos = self.nav.get_position()
+        final_pos = ini_pos + [np.cos(self.nav.get_angle()*np.pi/180)*distance, np.sin(self.nav.get_angle()*np.pi/180)*distance]
         speed = np.abs(int(speed))
         if (xmin is not None and (final_pos[0] < xmin)) or (xmax is not None and (final_pos[0] > xmax)) \
                 or (ymin is not None and (final_pos[1] < ymin)) or (ymax is not None and (final_pos[1] > ymax)):
             raise ValueError(f'Final position {final_pos} of straight move would be outside bounds')
         print(f'Straight move by {distance} m = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
+        self.keepout.validate(x1=ini_pos[0], y1=ini_pos[1], x2=final_pos[0], y2=final_pos[1])
         self.drive.move(dist_putz, speed=-speed)
         await self.drive.finished
         print(f'Straight move finished. Actual pos is {self.nav.get_position()} -> {self.nav.get_position() - final_pos} off ({((self.nav.get_position() - final_pos)**2).sum()**.5:.3f} m).')
@@ -843,6 +847,14 @@ class Putzini:
                 new_d = np.random.randint(1, range//2+1-curr_pos_linear) if random else range//2
             try:
                 await self.move_straight(distance=new_d, speed=speed, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+            except KeepoutError as err:
+                if random:
+                    print(f'Back-forth move is impossible: {err}. Trying another...')
+                    continue
+                else:
+                    print('Requested back-forth move is impossible.')
+                    raise err
+                    
             except ValueError as err:
                 self.drive.stop()
                 print('Error during straight section in back-forth:\n', err)
@@ -1105,6 +1117,11 @@ async def main():
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/store_calib")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
+        
+        manager = client.filtered_messages("putzini/force_idle")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/force_idle")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.state.set_idle())))
 
         manager = client.filtered_messages("putzini/commands")
         messages = await stack.enter_async_context(manager)
