@@ -73,10 +73,14 @@ class PutziniState:
             # raise move_task.exception()
             if not isinstance(move_task.exception(), asyncio.CancelledError):
                 print(move_task.exception())
-                self.action = "Error"
+                self.set_error()
         else:
             self.action = "Idle"
-        self.publish()
+            self.publish()
+
+    def set_error(self):
+        self.action = 'Error'
+        self.publish()        
         
     def set_position_with_alpha(self, pos, alpha):
         self.pos = pos
@@ -329,6 +333,7 @@ class PutziniKeepoutArea:
         putzini_drive: PutziniDrive = None, putzini_state: PutziniState = None):
         # the image should have 1px per mm
         img = imageio.imread(putzini_config.keepout_img)
+        self.state = putzini_state
         self.keepout_map = (img == 0)
         self.forbid_map = (img != 255)
         self.ref = self.keepout_map.shape[0]/2, self.keepout_map.shape[1]/2
@@ -401,11 +406,15 @@ class PutziniKeepoutArea:
             if self.is_line_forbidden(x1, y1, x2, y2):
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
+                if (self.state is not None) and (not override_state):
+                    self.state.set_error()
                 raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
         else:
             if self.is_point_keepout(x1, y1):
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
+                if (self.state is not None) and (not override_state):
+                    self.state.set_error()
                 raise KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
 
     def override(self, func):
@@ -505,8 +514,10 @@ class PutziniNav2:
 
     def write_calibration_to_sensor(self, calib=None, reset=False):
         calib = self.calibration if calib is None else calib
-        if reset:
-            calib.update(self.config.bno055_calib)    
+        if reset and (self.config.bno055_calib is not None):
+            calib.update(self.config.bno055_calib)
+        elif reset:
+            print('Cannot reset BNO055 parameters, as there are none in putzini.yaml')
         self.sensor.mode = adafruit_bno055.CONFIG_MODE
         self.sensor.offsets_accelerometer = calib['off_acc']
         self.sensor.offsets_gyroscope = calib['off_gyr']
@@ -791,14 +802,6 @@ class Putzini:
                     await self.move_circle(speed=speed, stride=2, exit_x=x*100, exit_y=y*100)
                 else:
                     raise err
-
-            if self.keepout.is_line_forbidden(start[0], start[1], end[0], end[1]):
-                # raise KeepoutError(f'Absolute move to {end} forbidden.', current_pos=start, target_pos=end, mqtt_client=self.mqtt_client)
-                if evade:
-                    print(f'Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
-                    await self.move_circle(speed=speed, stride=2, exit_x=x*100, exit_y=y*100)
-                else:
-                    raise KeepoutError(f'Absolute move to {end} forbidden.', current_pos=start, target_pos=end, mqtt_client=self.mqtt_client)
 
             diff = end-start
             distance = np.linalg.norm(diff)
@@ -1161,6 +1164,11 @@ async def main():
         await client.subscribe("putzini/store_calib")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
         
+        manager = client.filtered_messages("putzini/reset_sensor")
+        messages = await stack.enter_async_context(manager)
+        await client.subscribe("putzini/reset_sensor")
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
+
         manager = client.filtered_messages("putzini/force_idle")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/force_idle")
