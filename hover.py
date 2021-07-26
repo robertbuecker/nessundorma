@@ -73,7 +73,9 @@ class PutziniState:
             # raise move_task.exception()
             if not isinstance(move_task.exception(), asyncio.CancelledError):
                 print(move_task.exception())
-        self.action = "Idle"
+                self.action = "Error"
+        else:
+            self.action = "Idle"
         self.publish()
         
     def set_position_with_alpha(self, pos, alpha):
@@ -323,7 +325,8 @@ class KeepoutError(Exception):
 
 class PutziniKeepoutArea:
 
-    def __init__(self, mqtt_client, putzini_config: PutziniConfig, putzini_drive: PutziniDrive = None):
+    def __init__(self, mqtt_client, putzini_config: PutziniConfig, 
+        putzini_drive: PutziniDrive = None, putzini_state: PutziniState = None):
         # the image should have 1px per mm
         img = imageio.imread(putzini_config.keepout_img)
         self.keepout_map = (img == 0)
@@ -356,15 +359,46 @@ class PutziniKeepoutArea:
             return True
 
     def is_line_forbidden(self, x1, y1, x2, y2):
-        x, y = np.linspace(x1, x2, 1000), np.linspace(y1, y2, 1000)
+        N_pts = ((x2-x1)**2 + (y2-y1)**2)**.5
+        x, y = np.linspace(x1, x2, N_pts), np.linspace(y1, y2, N_pts)
         try:
-            return np.sum(self.forbid_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+            lineval = self.forbid_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
+
         except IndexError:
+            # start/end outside map
             return True
 
-    def validate(self, x1, y1, x2=None, y2=None, override_stop=False):
+        if np.sum(lineval) == 0:
+            # not passing anything - all is good
+            return False
+
+        elif lineval[-1] or not lineval[0]:
+            # not starting from a forbidden point or going into one -> move is forbidden
+            return True
+
+        else:
+            # going from forbidden to allowed - this is the tricky case. We need to check if path is passing though
+            # a forbidden region
+            print('Cannot easily determine line viability... walking it explicitly...')
+            ko_val = self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
+            went_low = False
+            for xp, yp, fv, kv in zip(x, y, lineval, ko_val):
+                if kv:
+                    print(f'...found keep-out on the way at {xp}, {yp}.')
+                    return True
+                if fv and not went_low:
+                    went_low = True
+                    print(f'Unforbidden at {xp}, {yp}')
+                if fv and went_low:
+                    print(f'Forbidden again at {xp}, {yp} -> path is forbidden!')
+                    return True
+
+        return False
+
+    def validate(self, x1, y1, x2=None, y2=None, override_stop=False, override_state=False):
+        # assumes forbidden for lines, and keepout for points
         if (x2 is not None) and (y2 is not None):
-            if self.is_line_keepout(x1, y1, x2, y2):
+            if self.is_line_forbidden(x1, y1, x2, y2):
                 if (self.stop and (not override_stop)) and (self.drive is not None):
                     self.drive.stop()
                 raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
@@ -651,7 +685,7 @@ class Putzini:
         self.config = PutziniConfig()
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
+        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive, self.state)
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout)
         # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
@@ -749,6 +783,15 @@ class Putzini:
             end = np.array([x,y])
 
             # print(start, end)
+            try:
+                self.keepout.validate(start[0], start[1], end[0], end[1])
+            except KeepoutError as err:
+                if evade:
+                    print(f'Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
+                    await self.move_circle(speed=speed, stride=2, exit_x=x*100, exit_y=y*100)
+                else:
+                    raise err
+
             if self.keepout.is_line_forbidden(start[0], start[1], end[0], end[1]):
                 # raise KeepoutError(f'Absolute move to {end} forbidden.', current_pos=start, target_pos=end, mqtt_client=self.mqtt_client)
                 if evade:
