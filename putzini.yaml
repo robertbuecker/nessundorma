@@ -12,7 +12,7 @@ bno055_calib:
 nav_update_rate: 20
 range_x: !!python/tuple [-300, 350]
 range_y: !!python/tuple [-300, 300]
-room_rotation: 116
+room_rotation: 218
 arka_radius: 100
 tag_name: B521
 keepout_img: fsp.tiff
