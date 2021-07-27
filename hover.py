@@ -365,7 +365,7 @@ class PutziniKeepoutArea:
 
     def is_line_forbidden(self, x1, y1, x2, y2):
         N_pts = ((x2-x1)**2 + (y2-y1)**2)**.5
-        x, y = np.linspace(x1, x2, N_pts), np.linspace(y1, y2, N_pts)
+        x, y = np.linspace(x1, x2, int(np.ceil(N_pts))), np.linspace(y1, y2, int(np.ceil(N_pts)))
         try:
             lineval = self.forbid_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
 
@@ -488,20 +488,27 @@ class PutziniNav2:
 
     async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', baudrate=512000):
 
-        # Orientation sensor
-        i2c = board.I2C()
-        i2c.init(board.SCL_1,board.SDA_1, 800)
-        self.sensor = adafruit_bno055.BNO055_I2C(i2c)
-        print('I2C orientation sensor connected. Sending calibrations...')
-        self.read_calibration_from_sensor()
-        self.write_calibration_to_sensor(reset=True)
-        print('Orientation sensor started.')    
-
         # Position sensor
+        t0 = time.time()
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
-        print('Master position module connected.')     
+        print(f'{1e3*(time.time()-t0)} ms:', 'Positioning device connected.')
         asyncio.ensure_future(self._reader_task())
         await self.start_ranging()
+        print(f'{1e3*(time.time()-t0)} ms:', 'Positioning started.')
+
+        # Orientation sensor
+        print(f'{1e3*(time.time()-t0)} ms:', 'Starting up orientation sensor.')
+        i2c = board.I2C()
+        i2c.init(board.SCL_1,board.SDA_1, 800)
+        print(f'{1e3*(time.time()-t0)} ms:', 'I2C initialized.')
+        self.sensor = adafruit_bno055.BNO055_I2C(i2c) # TODO: Why does this take so long here?
+        print(f'{1e3*(time.time()-t0)} ms:', 'Orientation sensor connected. Reading initial calibrations from sensor.')
+        self.read_calibration_from_sensor()
+        print(f'{1e3*(time.time()-t0)} ms:', 'Sending stored calibrations to sensor.')
+        await self.write_calibration_to_sensor(reset=True, restart=False)
+        print(f'{1e3*(time.time()-t0)} ms:', 'Orientation sensor started.')    
+
+ 
 
     def read_calibration_from_sensor(self):
         self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
@@ -512,12 +519,20 @@ class PutziniNav2:
         asyncio.ensure_future(self.mqtt_client.publish("putzini/calibration", json.dumps(self.calibration)))
         asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
-    def write_calibration_to_sensor(self, calib=None, reset=False):
-        calib = self.calibration if calib is None else calib
+    async def write_calibration_to_sensor(self, reset=True, restart=True):
+        reset = int(reset) # if sent over mqtt
+        calib = self.calibration
         if reset and (self.config.bno055_calib is not None):
             calib.update(self.config.bno055_calib)
         elif reset:
             print('Cannot reset BNO055 parameters, as there are none in putzini.yaml')
+        t0 = time.time()
+        if restart:
+            # self.sensor._write_register(adafruit_bno055._TRIGGER_REGISTER, 0x20 | 
+                # self.sensor._read_register(adafruit_bno055._TRIGGER_REGISTER)) 
+            self.sensor._write_register(adafruit_bno055._TRIGGER_REGISTER, 0x20) 
+            await asyncio.sleep(.8)
+            print(f'Sensor restart completed after {1000*(time.time() - t0)} ms')
         self.sensor.mode = adafruit_bno055.CONFIG_MODE
         self.sensor.offsets_accelerometer = calib['off_acc']
         self.sensor.offsets_gyroscope = calib['off_gyr']
@@ -525,9 +540,11 @@ class PutziniNav2:
         self.sensor.radius_accelerometer = calib['rad_acc']
         self.sensor.radius_magnetometer = calib['rad_mag']
         # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
+        print(f'Sensor parameter write completed after {1000*(time.time() - t0)} ms')
         self.sensor.mode = adafruit_bno055.NDOF_MODE     
+        # await asyncio.sleep(.65)
         self.read_calibration_from_sensor()   
-
+        print(f'Sensor ready after {1000*(time.time() - t0)} ms')
             
     async def start_ranging(self):
         await self.stop_ranging()
@@ -552,9 +569,14 @@ class PutziniNav2:
             # print(round(ela*1000))
             await asyncio.sleep(self.t_update/1000. - ela)
 
-            self.alpha = self.sensor.euler
-            self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
-            self.timestamp = time.time()
+            try:
+                self.alpha = self.sensor.euler
+                self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
+                self.timestamp = time.time()                
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
+
+            except OSError as err:
+                print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')
 
             for k, v in self._distance_buffer.items():
                 # print(v)
@@ -602,29 +624,31 @@ class PutziniNav2:
                     json.dumps({'N': list(self.N_valid.values()), 'd': self.distances.round(4).tolist()}),
                     # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
                     qos=0))
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
-            self.sensordat = {
+            try:
+                self.sensordat = {
                         'B': self.sensor.magnetic,
-                        'aA': tuple(x/np.pi*360 for x in self.sensor.gyro),
+                        'aA': self.sensor.gyro,
                         'aL': self.sensor.linear_acceleration,
                         'g': self.sensor.gravity,
                         'a': self.sensor.acceleration}
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+                cstat = self.sensor.calibration_status
 
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
+                if self.calibrated != cstat:
+                    self.calibrated = cstat
+                    if cstat[3] < self.config.minimum_calib_level:
+                        print('Mag calib off. Reloading from file.')
+                        asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
+                        await self.write_calibration_to_sensor(reset=True)
+                    self.read_calibration_from_sensor()
+                    asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
-            cstat = self.sensor.calibration_status
-            if self.calibrated != cstat:
-                self.calibrated = cstat
-                if cstat[3] < self.config.minimum_calib_level:
-                    print('Mag calib off. Reloading from file.')
-                    asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
-                    self.write_calibration_to_sensor(reset=False)
-                    asyncio.sleep(1)
-                self.read_calibration_from_sensor()
+            except OSError as err:
+                print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')                        
+
             
-            asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
 
     async def _reader_task(self):
@@ -1167,7 +1191,7 @@ async def main():
         manager = client.filtered_messages("putzini/reset_sensor")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/reset_sensor")
-        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.nav.store_calib)))
+        tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.nav.write_calibration_to_sensor)))
 
         manager = client.filtered_messages("putzini/force_idle")
         messages = await stack.enter_async_context(manager)
