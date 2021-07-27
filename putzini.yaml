@@ -1,6 +1,7 @@
 anchor_names: !!python/tuple [B4DE, B4D3, B4D9, B4E7]
 anchor_x: !!python/tuple [184, 184, -250, -250]
-anchor_y: !!python/tuple [-290, 290, -290, 290]
+anchor_y: !!python/tuple [-360, 360, -360, 360]
+max_distance: 700
 arka_radius: 100
 bno055_calib:
   off_acc: !!python/tuple [-3, -5, -22]
@@ -10,7 +11,7 @@ bno055_calib:
   rad_mag: 728
 keepout_img: fsp.tiff
 minimum_calib_level: 0
-nav_avg_len: 10
+nav_avg_len: 50
 nav_update_rate: 20
 range_x: !!python/tuple [-300, 350]
 range_y: !!python/tuple [-300, 300]
