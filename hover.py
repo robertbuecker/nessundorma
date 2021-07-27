@@ -61,7 +61,7 @@ class PutziniState:
     def __init__(self, mqtt_client):
         self.mqtt_client = mqtt_client
         self.pos = np.zeros(3)
-        self.alpha = 0
+        self.alpha = np.array([0., 0., 0.])
         self.action = 'Idle'
     
     def set_active(self):
@@ -69,7 +69,7 @@ class PutziniState:
         self.publish()
         
     def set_idle(self, move_task=None):
-        if (move_task is not None) and (move_task.exception() is not None):
+        if (move_task is not None) and (not isinstance(move_task, str)) and (move_task.exception() is not None):
             # raise move_task.exception()
             if not isinstance(move_task.exception(), asyncio.CancelledError):
                 print(move_task.exception())
@@ -350,22 +350,25 @@ class PutziniKeepoutArea:
         return self.keepout_map[Y, X] > 0
         
     def is_point_forbidden(self, x, y):
-        Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
         if (X < 0) or (X >= self.forbid_map.shape[1]) or (Y < 0) or (Y >= self.forbid_map.shape[1]):
             return True
 
         return self.forbid_map[Y, X] > 0
 
-    def is_line_keepout(self, x1, y1, x2, y2):
-        x, y = np.linspace(x1, x2, 1000), np.linspace(y1, y2, 1000)
+    def N_line_keepout(self, x1, y1, x2, y2):
+        N_pts = int(np.ceil(((self.fac*x2-self.fac*x1)**2 + (self.fac*y2-self.fac*y1)**2)**.5))
+        x, y = np.linspace(x1, x2, N_pts), np.linspace(y1, y2, N_pts)
         try:
-            return np.sum(self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]) > 0
+            return np.sum(self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)])/self.fac
         except IndexError:
-            return True
+            return N_pts
+
+    def is_line_keepout(self, x1, y1, x2, y2):
+        return self.N_line_keepout(x1, y1, x2, y2) > 0
 
     def is_line_forbidden(self, x1, y1, x2, y2):
-        N_pts = ((x2-x1)**2 + (y2-y1)**2)**.5
-        x, y = np.linspace(x1, x2, int(np.ceil(N_pts))), np.linspace(y1, y2, int(np.ceil(N_pts)))
+        N_pts = int(np.ceil(((self.fac*x2-self.fac*x1)**2 + (self.fac*y2-self.fac*y1)**2)**.5))
+        x, y = np.linspace(x1, x2, N_pts), np.linspace(y1, y2, N_pts)
         try:
             lineval = self.forbid_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
 
@@ -377,6 +380,9 @@ class PutziniKeepoutArea:
             # not passing anything - all is good
             return False
 
+        elif self.is_point_keepout(x[0], y[0]):
+            return True
+
         elif lineval[-1] or not lineval[0]:
             # not starting from a forbidden point or going into one -> move is forbidden
             return True
@@ -387,14 +393,17 @@ class PutziniKeepoutArea:
             print('Cannot easily determine line viability... walking it explicitly...')
             ko_val = self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
             went_low = False
+            previous_forbidden = True
             for xp, yp, fv, kv in zip(x, y, lineval, ko_val):
                 if kv:
                     print(f'...found keep-out on the way at {xp}, {yp}.')
                     return True
-                if fv and not went_low:
+                if not fv:
+                    previous_forbidden = False
+                if fv and (not went_low) and previous_forbidden:
                     went_low = True
                     print(f'Unforbidden at {xp}, {yp}')
-                if fv and went_low:
+                if fv and went_low and (not previous_forbidden):
                     print(f'Forbidden again at {xp}, {yp} -> path is forbidden!')
                     return True
 
@@ -455,6 +464,7 @@ class PutziniNav2:
         self.anchors = putzini_config.anchor_names
         self.tag = putzini_config.tag_name
         self.anchor_idx = {name.encode(): ii for ii, name in enumerate(self.anchors)}
+        print(self.anchor_idx)
 
         # self.anchor_pos = np.array([[400, -260, 0],
         #                    [400,+400, 0],
@@ -468,15 +478,16 @@ class PutziniNav2:
 
         self.room_rotation = putzini_config.room_rotation
 
-        self.distances = np.array([0.,0.,0.])
-        self.distances_sig = np.array([0.,0.,0.])
+        self.distances = np.array([0.]*len(self.anchors))
+        self.distances_sig = np.array([0.]*len(self.anchors))
         self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
+        self._alpha_buffer = [np.array([0., 0., 0.])]
         self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
         self.position = self.anchor_pos.mean(axis=0)
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
-        self.alpha = 0
+        self.alpha = np.array([0.]*3)
         self.t_last_angle = 0
         self.timestamp = -1.
         self.avg_len = 20
@@ -506,9 +517,8 @@ class PutziniNav2:
         self.read_calibration_from_sensor()
         print(f'{1e3*(time.time()-t0)} ms:', 'Sending stored calibrations to sensor.')
         await self.write_calibration_to_sensor(reset=True, restart=False)
+        # asyncio.ensure_future(self._read_bno055())
         print(f'{1e3*(time.time()-t0)} ms:', 'Orientation sensor started.')    
-
- 
 
     def read_calibration_from_sensor(self):
         self.calibration = {'off_acc': self.sensor.offsets_accelerometer,
@@ -550,7 +560,7 @@ class PutziniNav2:
         await self.stop_ranging()
         self.writer.write(b'$PL,\r\n')
         # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
-        config_string = f'$PK,{self.tag},0,3,{self.anchors[0]},{self.anchors[1]},{self.anchors[2]},\r\n'
+        config_string = f'$PK,{self.tag},0,{len(self.anchors)},{",".join(self.anchors)},\r\n'
         config_string = config_string.encode('utf-8')
         # print(config_string)
         self.writer.write(config_string)
@@ -569,14 +579,9 @@ class PutziniNav2:
             # print(round(ela*1000))
             await asyncio.sleep(self.t_update/1000. - ela)
 
-            try:
-                self.alpha = self.sensor.euler
-                self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
-                self.timestamp = time.time()                
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/euler", f'{self.alpha}', qos=0))
-
-            except OSError as err:
-                print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')
+            self.timestamp = time.time()                
+            
+            # self.alpha from angle buffer
 
             for k, v in self._distance_buffer.items():
                 # print(v)
@@ -584,25 +589,58 @@ class PutziniNav2:
                 if len(v) > self.config.nav_avg_len:
                     v = v[-self.config.nav_avg_len:]
                 self.distances[self.anchor_idx[k]] = np.mean(v)
+                dist_std = np.std(v)
                 self._distance_buffer[k] = v
+                t0 = time.time()
 
+                # weights for optimization
+                try:
+                    if (len(self.distances) == 4) and False:
+                        # trying to be smart
+                        w = np.zeros(4)
+                        w[0] = (self.distances[0] + self.distances[2]) / self.distances[0]**2
+                        w[2] = (self.distances[2] + self.distances[0]) / self.distances[2]**2
+                        w[1] = (self.distances[1] + self.distances[3]) / self.distances[1]**2
+                        w[3] = (self.distances[3] + self.distances[1]) / self.distances[3]**2
+                    else:
+                        ko_len = np.array([self.keepout.N_line_keepout(self.position[0], self.position[1],
+                            self.anchor_pos[ii,0], self.anchor_pos[ii,1]) for ii in range(len(self.anchor_idx))])
+                        w = 1/(self.distances +  ko_len**2)
+                        # print(self.distances, ko_len)
+                except Exception as err:
+                    print(f'Cannot calculate weights: {err}')
+                    w = np.array([1.]*len(self.distances))
+
+                # w = w/dist_std
+                # w = w/w.sum()
+
+            await self._read_bno055()
+
+            # N_alpha_valid = len(self._alpha_buffer) - self.config.nav_avg_len
+            # if len(self._alpha_buffer) > self.config.nav_avg_len:
+            #     ab = self._alpha_buffer[-self.config.nav_avg_len:]
+            # else:
+            #     ab = self._alpha_buffer
+            # self.alpha = np.median(np.stack(ab), axis=0)
+            self.alpha = self._alpha_buffer[-1]
+            self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
+            self._alpha_buffer = []
+            N_alpha_valid = 1
+
+            tw = time.time() - t0
             include_z = False
-            t0 = time.time()
 
             if include_z:
                 def error(x):
                     dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
-                    # dist_err = ((self.anchor_pos - np.concatenate([x[:2].reshape(1,2), x[-1].reshape(1,1)],axis=1))**2).sum(axis=1)**.5 - self.distances
-                    # print((dist_err**2/self.distances**2))
-                    f = (dist_err**2/self.distances).sum()
+                    f = (w * dist_err**2).sum()
                     return f
                 self.position = minimize(error, self.position, method='BFGS').x
 
             else:
                 def error(x):
                     dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
-                    # print((dist_err**2/dist**2))
-                    f = (dist_err**2/self.distances).sum()
+                    f = (w * dist_err**2).sum()
                     return f
                 self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 
@@ -613,6 +651,7 @@ class PutziniNav2:
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
             # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
+            # print(f'tW = {tw*1000} ms, tOpt = {(time.time()-t0)*1000:.0f} ms')
             # dirty fix: just inverting in-plane angle for now
             c, s = np.cos(self.alpha[0]/180*np.pi), np.sin(self.alpha[0]/180*np.pi)
             self.RT_rp = np.array([[c,-s,0,self.position[0]], 
@@ -621,34 +660,50 @@ class PutziniNav2:
                                     [0,0,1,0]])
             # print(self.N_valid)
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
-                    json.dumps({'N': list(self.N_valid.values()), 'd': self.distances.round(4).tolist()}),
+                    json.dumps({'N': list(self.N_valid.values()) + [N_alpha_valid], 'd': self.distances.round(4).tolist(), 'w': w.round(4).tolist()}),
                     # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
                     qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
-            try:
-                self.sensordat = {
-                        'B': self.sensor.magnetic,
-                        'aA': self.sensor.gyro,
-                        'aL': self.sensor.linear_acceleration,
-                        'g': self.sensor.gravity,
-                        'a': self.sensor.acceleration}
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
-                cstat = self.sensor.calibration_status
 
-                if self.calibrated != cstat:
-                    self.calibrated = cstat
-                    if cstat[3] < self.config.minimum_calib_level:
-                        print('Mag calib off. Reloading from file.')
-                        asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
-                        await self.write_calibration_to_sensor(reset=True)
-                    self.read_calibration_from_sensor()
-                    asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+            # try:
+            #     self.sensordat = {
+            #             'B': self.sensor.magnetic,
+            #             'aA': self.sensor.gyro,
+            #             'aL': self.sensor.linear_acceleration,
+            #             'g': self.sensor.gravity,
+            #             'a': self.sensor.acceleration}
+            #     asyncio.ensure_future(self.mqtt_client.publish("putzini/sensordata", json.dumps(self.sensordat)))
 
-            except OSError as err:
-                print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')                        
+            # except OSError as err:
+            #     print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')                        
 
+    async def _read_bno055(self):
+        # while True:
+
+        try:
+            euler = np.array(self.sensor.euler)
+            if not np.isnan(euler).any():
+                self._alpha_buffer.append(euler)
+
+            cstat = self.sensor.calibration_status
+
+            if self.calibrated != cstat:
+                self.calibrated = cstat
+                self.read_calibration_from_sensor()   
             
+                if cstat[3] < self.config.minimum_calib_level:
+                    print('Mag calib off. Reloading from file.')
+                    asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
+                    await self.write_calibration_to_sensor(reset=True, restart=True)
+                    await asyncio.sleep(2)
+                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
+
+        except (OSError, TypeError) as err:
+            print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')
+            await asyncio.sleep(0.5)
+
+        # await asyncio.sleep(10e-3)
 
 
     async def _reader_task(self):
@@ -676,7 +731,7 @@ class PutziniNav2:
                 try:
                     tag_id, a1_dist, a2_dist, a3_dist, udata, _ = par.split(b',',5)
                     d1, d2, d3 = int(a1_dist, 16), int(a2_dist, 16), int(a3_dist, 16)
-                    if not d1 == 0:
+                    if (not d1 == 0) and (not d1 >= self.config.max_distance):
                         self._distance_buffer[tag_id].append(float(d1)/100.)
                         # new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
                     # self._distance_buffer.append(new_dist)
@@ -823,7 +878,7 @@ class Putzini:
             except KeepoutError as err:
                 if evade:
                     print(f'Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
-                    await self.move_circle(speed=speed, stride=2, exit_x=x*100, exit_y=y*100)
+                    await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
                 else:
                     raise err
 
@@ -1196,7 +1251,7 @@ async def main():
         manager = client.filtered_messages("putzini/force_idle")
         messages = await stack.enter_async_context(manager)
         await client.subscribe("putzini/force_idle")
-        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.state.set_idle())))
+        tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.state.set_idle)))
 
         manager = client.filtered_messages("putzini/commands")
         messages = await stack.enter_async_context(manager)
