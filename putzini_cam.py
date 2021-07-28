@@ -1,6 +1,36 @@
+#!/usr/bin/env python3
+#typedef struct{
+#   uint16_t start;
+#   int16_t 	cmd1;
+#   int16_t 	cmd2;
+#   int16_t 	speedR_meas;
+#   int16_t 	speedL_meas;
+#   int16_t 	batVoltage;
+#   int16_t 	boardTemp;
+#   uint16_t cmdLed;
+#   uint16_t checksum;
+#} SerialFeedback;
+
+import asyncio
+import numpy as np
+from scipy.spatial import transform
+import yaml
+from sys import argv
+import os
+import time
+import subprocess
+# import skimage.io
+# import skimage.draw
+import imageio
+import logging
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 class PutziniCam:
     def __init__(self, mqtt_client):
+        self.logger = logger 
         self.mqtt_client = mqtt_client
         self.detected = 0
         if os.path.exists('putziniNav.yml'):
@@ -22,6 +52,9 @@ class PutziniCam:
         self.RT_pm = np.eye(4)
         self.timestamp = -1.
         self.t_last_angle = -1.
+        self.position = self.RT_rp[:3,-1]
+        self.alpha = np.array([0., 0., 0.])
+        self.timestamp = time.time()       
 
     def init_reference_system(self):
         # reference as seen from ArUco system. The flip of the z axis (180 deg around y)
@@ -34,8 +67,8 @@ class PutziniCam:
                                 [sa, ca, 0, y],
                                 [0, 0, 1, z],
                                 [0, 0, 0, 1]])
-            print('Setting reference system w.r.t. marker system to:')
-            print(reference)
+            self.logger.info('Setting reference system w.r.t. marker system to %s', reference)
+            # print(reference)
             self.RT_mr = np.matmul(reference, np.diag([1, -1, -1, 1]))
 
         else:
@@ -47,7 +80,7 @@ class PutziniCam:
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
-        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','calib_usbgs/map.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
+        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','markerset.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
         asyncio.ensure_future(self._reader_task())
 
     async def _reader_task(self):
@@ -78,16 +111,16 @@ class PutziniCam:
                 alpha = xform.as_euler('XYZ')*180/np.pi
 
                 if 'out-of-plane-limit' in self.opts and max(alpha[:2]) > float(self.opts['out-of-plane-limit']):
-                    wstr = f'WARNING: out of plane angles {alpha[:2]} exceed limit.'
+                    wstr = f'Out of plane angles {alpha[:2]} exceed limit.'
                     # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': wstr}),qos=0))  
-                    print(wstr)
+                    self.logger.warning(wstr)
                 else:
                     self.position = self.RT_rp[:3,-1]
                     self.alpha = alpha
                     self.timestamp = time.time()
                     # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': 'OK'}),qos=0))  
 
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
+                # asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
                 
 
     # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
@@ -119,3 +152,21 @@ class PutziniCam:
 
         with open('putziniNav.yml', 'w') as fh:
             yaml.dump(self.opts, fh)
+
+async def main():
+    import asyncio_mqtt as mqtt
+    client = mqtt.Client("172.31.1.150")
+    t0 = time.time()
+    cam = PutziniCam(client)
+    await cam.start()
+    # p = lambda txt: print(f'(round(time.time()-t0,2))', txt)
+    while True:
+        logger.info('%s markers. Position is %s, angle is %s', cam.detected, cam.get_position(), cam.get_angle())
+        await asyncio.sleep(1)    
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    loop = asyncio.get_event_loop()      
+    # loop.set_debug(True)
+    loop.run_until_complete(main())
+    loop.close()
