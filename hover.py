@@ -46,6 +46,7 @@ import imageio
 import numpy as np
 
 from scipy.spatial.distance import euclidean
+from scipy.ndimage import median_filter
 import time
 from scipy.optimize import minimize
 import board
@@ -496,6 +497,8 @@ class PutziniNav2:
         self.calibration = putzini_config.bno055_calib
         self.calibration = {}
         self.calibrated = (0,0,0,0)
+        self.moving_straight = False
+        self.straight_move_buffer = [np.empty(3)]
 
     async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', baudrate=512000):
 
@@ -552,7 +555,7 @@ class PutziniNav2:
         # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
         print(f'Sensor parameter write completed after {1000*(time.time() - t0)} ms')
         self.sensor.mode = adafruit_bno055.NDOF_MODE     
-        # await asyncio.sleep(.65)
+        await asyncio.sleep(1)
         self.read_calibration_from_sensor()   
         print(f'Sensor ready after {1000*(time.time() - t0)} ms')
             
@@ -595,25 +598,15 @@ class PutziniNav2:
 
                 # weights for optimization
                 try:
-                    if (len(self.distances) == 4) and False:
-                        # trying to be smart
-                        w = np.zeros(4)
-                        w[0] = (self.distances[0] + self.distances[2]) / self.distances[0]**2
-                        w[2] = (self.distances[2] + self.distances[0]) / self.distances[2]**2
-                        w[1] = (self.distances[1] + self.distances[3]) / self.distances[1]**2
-                        w[3] = (self.distances[3] + self.distances[1]) / self.distances[3]**2
-                    else:
-                        ko_len = np.array([self.keepout.N_line_keepout(self.position[0], self.position[1],
-                            self.anchor_pos[ii,0], self.anchor_pos[ii,1]) for ii in range(len(self.anchor_idx))])
-                        w = 1/(self.distances +  ko_len**2)
+                    ko_len = np.array([self.keepout.N_line_keepout(self.position[0], self.position[1],
+                        self.anchor_pos[ii,0], self.anchor_pos[ii,1]) for ii in range(len(self.anchor_idx))])
+                    w = 1/(self.distances +  ko_len**2)
                         # print(self.distances, ko_len)
                 except Exception as err:
                     print(f'Cannot calculate weights: {err}')
                     w = np.array([1.]*len(self.distances))
 
-                # w = w/dist_std
-                # w = w/w.sum()
-
+            # TODO tidy up this mess!!!
             await self._read_bno055()
 
             # N_alpha_valid = len(self._alpha_buffer) - self.config.nav_avg_len
@@ -622,10 +615,14 @@ class PutziniNav2:
             # else:
             #     ab = self._alpha_buffer
             # self.alpha = np.median(np.stack(ab), axis=0)
-            self.alpha = self._alpha_buffer[-1]
-            self.alpha = (-self.alpha[0] - self.room_rotation, self.alpha[1], self.alpha[2])            
+            if len(self._alpha_buffer):
+                self.alpha = self._alpha_buffer[-1]
+                self.alpha = ((-self.alpha[0] - self.room_rotation + 180) % 360 - 180, self.alpha[1], self.alpha[2])      
+                N_alpha_valid = 1
+            else:
+                N_alpha_valid = 0
+
             self._alpha_buffer = []
-            N_alpha_valid = 1
 
             tw = time.time() - t0
             include_z = False
@@ -658,6 +655,10 @@ class PutziniNav2:
                                     [s,c,0,self.position[1]], 
                                     [0,0,1,self.position[2]], 
                                     [0,0,1,0]])
+
+            if self.moving_straight:
+                self.straight_move_buffer.append(np.concatenate([self.position[:2], self.alpha[:1]]))
+
             # print(self.N_valid)
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
                     json.dumps({'N': list(self.N_valid.values()) + [N_alpha_valid], 'd': self.distances.round(4).tolist(), 'w': w.round(4).tolist()}),
@@ -680,7 +681,6 @@ class PutziniNav2:
 
     async def _read_bno055(self):
         # while True:
-
         try:
             euler = np.array(self.sensor.euler)
             if not np.isnan(euler).any():
@@ -696,15 +696,10 @@ class PutziniNav2:
                     print('Mag calib off. Reloading from file.')
                     asyncio.ensure_future(self.mqtt_client.publish('putzini/error', "Sensor calib off. Reloading from file."))
                     await self.write_calibration_to_sensor(reset=True, restart=True)
-                    await asyncio.sleep(2)
-                asyncio.ensure_future(self.mqtt_client.publish("putzini/calibrated", json.dumps(self.calibrated)))
 
         except (OSError, TypeError) as err:
             print(f'Could not read orientation sensor: {err}. Maybe it is restarting?')
             await asyncio.sleep(0.5)
-
-        # await asyncio.sleep(10e-3)
-
 
     async def _reader_task(self):
         msg=b''
@@ -770,6 +765,25 @@ class PutziniNav2:
         print('Storing calibration:', self.calibration)
         self.config.to_yaml()
 
+    def tell_straight_move_start(self):
+        self.moving_straight = True
+        self.straight_move_buffer = [np.empty(3)]
+
+    def tell_straight_move_done(self):
+        self.moving_straight = False
+        buffer = np.stack(self.straight_move_buffer)
+        trajectory = buffer[:,:2]
+        d_trajectory = np.diff(trajectory, axis=0)
+        angle_trajectory = np.arctan2(d_trajectory[:,1], d_trajectory[:,0]) * 180/np.pi
+        angle_sensor = (buffer[:-1,2] + buffer[1:,2])/2
+        d_angle = (angle_trajectory - angle_sensor + 180) % 360 - 180
+        angle_dev = np.mean(d_angle[len(d_angle)//4:])
+        angle_dev_std = np.std(d_angle[len(d_angle)//4:])
+        angle_dev_med = np.median(d_angle[len(d_angle)//4:])
+        print(angle_trajectory, angle_sensor)
+        print(f'Angle deviation is {angle_dev}, SD {angle_dev_std}, Median {angle_dev_med}.')
+        # d_trajectory = median_filter()
+        
 class Putzini:
     def __init__(self, mqtt_client):
         self.config = PutziniConfig()
@@ -895,8 +909,12 @@ class Putzini:
             print (f"move from {start} to {end}: turn to {a}° and drive {distance}m.")
             await self.turn_absolute(a, np.abs(speed), accuracy=max(3,10*min(distance,1)))
             
+            if distance > 1:
+                self.nav.tell_straight_move_start()
             self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
+            
             await self.drive.finished
+            self.nav.tell_straight_move_done()
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
