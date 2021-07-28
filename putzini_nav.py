@@ -77,8 +77,6 @@ class PutziniNav2:
             [0]*len(putzini_config.anchor_x)]
         ).T/100.
 
-        self.room_rotation = putzini_config.room_rotation
-
         self.distances = np.array([0.]*len(self.anchors))
         self.distances_sig = np.array([0.]*len(self.anchors))
         self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
@@ -211,7 +209,7 @@ class PutziniNav2:
                 await self._read_bno055()
                 if len(self._alpha_buffer):
                     self.alpha = self._alpha_buffer[-1]
-                    self.alpha = ((-self.alpha[0] - self.room_rotation + 180) % 360 - 180, self.alpha[1], self.alpha[2])      
+                    self.alpha = ((-self.alpha[0] - self.config.room_rotation + 180) % 360 - 180, self.alpha[1], self.alpha[2])      
                     N_alpha_valid = 1
                 else:
                     N_alpha_valid = 0
@@ -222,7 +220,7 @@ class PutziniNav2:
             else:
                 N_alpha_valid = 1
                 alpha_cam = self.cam.get_angle()
-                alpha_room = (alpha_cam - self.room_rotation + 180) % 360 - 180
+                alpha_room = (alpha_cam - self.config.room_rotation - self.config.cam_rotation + 180) % 360 - 180
                 self.logger.info('Angle from camera is %s raw, %s w.r.t. room CS.', alpha_cam, alpha_room)
                 self.alpha = np.array([alpha_room, 0, 0])
 

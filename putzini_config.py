@@ -15,6 +15,7 @@ class PutziniConfig:
         self.nav_avg_len = 10
         self.bno055_calib = None
         self.room_rotation = 0
+        self.cam_rotation = 0
         self.arka_radius = 100
         self.keepout_img = 'keepout.tiff'
         self.minimum_calib_level = 0

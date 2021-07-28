@@ -16,6 +16,7 @@ nav_update_rate: 20
 range_x: !!python/tuple [-300, 350]
 range_y: !!python/tuple [-300, 300]
 room_rotation: 110
+cam_rotation: 151.18
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 230, 163, 0, -163, -230, -163]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
