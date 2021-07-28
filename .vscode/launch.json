@@ -29,7 +29,7 @@
             "program": "control_music.py",
             "console": "integratedTerminal",
             "args": []
-        }
+        },
         {
             "name": "Putzini monitor",
             "type": "python",
@@ -37,7 +37,7 @@
             "program": "plotLive.py",
             "console": "integratedTerminal",
             "args": []
-        }        
+        }  ,      
         {
             "name": "Putzini position",
             "type": "python",
@@ -45,7 +45,15 @@
             "program": "putzini_position.py",
             "console": "integratedTerminal",
             "args": []
-        }           
+        } ,          
+        {
+            "name": "Putzini Main",
+            "type": "python",
+            "request": "launch",
+            "program": "hover.py",
+            "console": "integratedTerminal",
+            "args": []
+        } ,             
         {
             "name": "Sequencer",
             "type": "python",
