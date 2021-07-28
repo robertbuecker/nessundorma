@@ -323,8 +323,11 @@ class MainWindow(QtGui.QWidget):
                                 
         stop = pg.QtGui.QPushButton('STOP')
         stop.clicked.connect(lambda: self.command('move', 'stop()'))
-        self.control_layout.addRow(stop)    
-        stop.setMaximumWidth(200)
+        done = pg.QtGui.QPushButton('Set Ready')
+        done.clicked.connect(lambda: self.client.m_client.publish('putzini/force_idle'))
+        
+        self.control_layout.addRow(stop, done)    
+        # stop.setMaximumWidth(200)
         
         vac = pg.QtGui.QCheckBox('Vacuum Cleaner')
         vac.stateChanged.connect(lambda state: self.command('vacuum', '1' if int(state)==2 else '0'))
@@ -457,7 +460,7 @@ class MainWindow(QtGui.QWidget):
     def on_distancesSignal(self, distances):
         # print(f'Distances: {distances}')
         dist = np.array(distances['d'])*100
-        num = np.array(distances['N'])
+        # num = np.array(distances['N'])
         # if (self.last_distances is None) or not np.allclose(distances['d'], self.last_distances):
         if True:
             self.last_distances = dist
