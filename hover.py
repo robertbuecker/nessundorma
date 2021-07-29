@@ -217,7 +217,7 @@ class Putzini:
             try:
                 self.keepout.validate(start[0], start[1], end[0], end[1])
             except PathForbiddenError as err:
-                if evade:
+                if evade and not self.keepout.is_point_forbidden(end[0], end[1]):
                     self.logger.warning(f'move_abs: Direct move from {start*100} to {end*100} cm is forbidden. Attempting to go via waypoints.')
                     #TODO better logic about circle direction
                     await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
