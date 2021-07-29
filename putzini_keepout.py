@@ -1,46 +1,15 @@
 
 import asyncio
-import serial_asyncio
 import asyncio_mqtt as mqtt
-try:
-    from contextlib import AsyncExitStack, asynccontextmanager
-except:
-    from async_exit_stack import AsyncExitStack
-
-
 import numpy as np
-from scipy.spatial import transform
-import math
-import re
-
-import json
-import random
-import yaml
-
-from sys import argv
-import os
-import time
-import simpleaudio as sa
-import subprocess
-# import skimage.io
-# import skimage.draw
 import imageio
-
 import numpy as np
-
-from scipy.spatial.distance import euclidean
-from scipy.ndimage import median_filter
-import time
-from scipy.optimize import minimize
-import board
-import adafruit_bno055
-from contextlib import contextmanager
-
-from inspect import isawaitable
-import csv
-
 from putzini_config import PutziniConfig
+from putzini_drive import PutziniDrive
+from typing import Optional
+import logging
 
+logger = logging.getLogger(__name__)
 
 class KeepoutError(Exception):
 
@@ -53,16 +22,33 @@ class KeepoutError(Exception):
         if target_pos is not None:
             self.message += f' going to {tuple(round(c*100,1) for c in target_pos)} cm'
         if mqtt_client is not None:
+            #TODO replace w/ logger
             asyncio.ensure_future(mqtt_client.publish("putzini/error", self.message))
         super().__init__(self.message)
+
+class PathForbiddenError(Exception):
+
+    def __init__(self, message='', current_pos=None, target_pos=None, mqtt_client=None):
+        self.current_pos = current_pos
+        self.target_pos = target_pos
+        self.message = 'Path forbidden ' if not message else message
+        if current_pos is not None:
+            self.message += f'at {tuple(round(c*100,1) for c in current_pos)} cm'
+        if target_pos is not None:
+            self.message += f' going to {tuple(round(c*100,1) for c in target_pos)} cm'
+        if mqtt_client is not None:
+            #TODO replace w/ logger
+            asyncio.ensure_future(mqtt_client.publish("putzini/warning", self.message))
+        super().__init__(self.message)   
+
 
 class PutziniKeepoutArea:
 
     def __init__(self, mqtt_client, putzini_config: PutziniConfig, 
-        putzini_drive=None, putzini_state=None):
+        putzini_drive: Optional[PutziniDrive] = None):
         # the image should have 1px per mm
         img = imageio.imread(putzini_config.keepout_img)
-        self.state = putzini_state
+        # self.state = putzini_state
         self.keepout_map = (img == 0)
         self.forbid_map = (img != 255)
         self.ref = self.keepout_map.shape[0]/2, self.keepout_map.shape[1]/2
@@ -70,6 +56,7 @@ class PutziniKeepoutArea:
         self.fac = 100 # set to 100 if parameters are supposed to be meters
         self.stop = True
         self.mqtt_client = mqtt_client
+        self.logger = logger
         
     def is_point_keepout(self, x, y):
         Y, X = int(y*self.fac+self.ref[0]), int(x*self.fac+self.ref[1])
@@ -139,40 +126,27 @@ class PutziniKeepoutArea:
 
         return False
 
-    def validate(self, x1, y1, x2=None, y2=None, override_stop=False, override_state=False):
+    def validate(self, x1, y1, x2=None, y2=None):
         # assumes forbidden for lines, and keepout for points
         if (x2 is not None) and (y2 is not None):
             if self.is_line_forbidden(x1, y1, x2, y2):
-                if (self.stop and (not override_stop)) and (self.drive is not None):
-                    self.drive.stop()
-                if (self.state is not None) and (not override_state):
-                    self.state.set_error()
-                raise KeepoutError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
+                raise PathForbiddenError(current_pos=(x1, y1), target_pos=(x2, y2), mqtt_client=self.mqtt_client)
         else:
             if self.is_point_keepout(x1, y1):
-                if (self.stop and (not override_stop)) and (self.drive is not None):
-                    self.drive.stop()
-                if (self.state is not None) and (not override_state):
-                    self.state.set_error()
-                raise KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
-
-    def override(self, func):
-        def move_without_limits(*args, **kwargs):
-            stp = self.stop
-            try:
-                self.stop = False
-                print(f'Force keepout: {self.stop}')
-                func(*args, **kwargs)
-            finally:
-                self.stop = stp
-                print(f'Force keepout: {self.stop}')
-
-        return move_without_limits
-
+                if self.stop:
+                    err = KeepoutError(current_pos=(x1, y1), target_pos=None, mqtt_client=self.mqtt_client)
+                    if self.drive is not None:
+                        self.drive.stop()
+                    # if self.state is not None: #TODO this is extremely ugly and should be performed in the class wrapping
+                    #     self.state.set_error(str(err))
+                    raise err
+                else:
+                    self.logger.warning('Overriden keepout at (%.1f, %.1f)', x1*100, y1*100)
+    
     def set_override(self, value):
         if int(value):
-            print('Deactivating Putzini interlock!')
+            self.logger.warning('Deactivating Putzini interlock!')
             self.stop = False
         else:
-            print('Activating Putzini interlock!')
+            self.logger.warning('Activating Putzini interlock!')
             self.stop = True
