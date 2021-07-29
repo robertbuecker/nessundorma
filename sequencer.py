@@ -21,9 +21,10 @@ def on_message(client, userdata, message):
     
     if 'putzini/state' in message.topic:
         ps = json.loads(message.payload.decode())
-        if 'action' in ps and ps['action'] == 'IDLE':
-            ptrig = True
-            print('Putzini: IDLE received.')
+        if 'action' in ps and ps['action'] == 'Idle':
+            if not ptrig:
+                print('Putzini: IDLE received.')
+                ptrig = True
     
     if 'music/state' in message.topic:
         ms = json.loads(message.payload.decode())
@@ -33,7 +34,7 @@ def on_message(client, userdata, message):
 
 client = mqtt.Client()
 client.on_message = on_message
-client.connect('192.168.1.19', 1883)
+client.connect('172.31.1.150', 1883)
 client.subscribe('putzini/state')
 client.subscribe('music/state')
 client.loop_start()

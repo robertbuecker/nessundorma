@@ -281,7 +281,12 @@ class MainWindow(QtGui.QWidget):
         rel_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+,\s*-?\d+,\s*\d+')))
         rel_move.returnPressed.connect(lambda: self.command('move', f'moveByPos({rel_move.text()})'))
         self.control_layout.addRow(QtGui.QLabel('Rel move'), rel_move)
-        
+                
+        straight_move = QtGui.QLineEdit('0, 50, 10')
+        straight_move.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
+        straight_move.returnPressed.connect(lambda: self.command('move', f'moveStraight({rel_move.text()})'))
+        self.control_layout.addRow(QtGui.QLabel('Straight move'), straight_move)
+                
         abs_turn = QtGui.QLineEdit('0, 50')
         abs_turn.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp('-?\d+,\s*-?\d+')))
         abs_turn.returnPressed.connect(lambda: self.command('move', f'moveToAngle({abs_turn.text()})'))
