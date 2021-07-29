@@ -9,6 +9,7 @@ import logging
 from sys import argv
 from time import time
 from copy import copy
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,11 @@ class PutziniSound:
                             txt = step['text'].split(',')
                             label, speed, trigger = txt[0], int(txt[1]) if txt[1] else None, txt[2].strip() == 'T'
                             self.logger.info('Passed label: %s at %.1f s. Trigger: %s. Speed: %s', start, label, trigger, speed)
-                            
+                            if trigger:
+                                asyncio.ensure_future(
+                                    self.mqtt_client.publish(
+                                        'music/state', 
+                                        json.dumps({'action': 'Trigger' if trigger else None})))
 
                         have_labels = False
                 else:
