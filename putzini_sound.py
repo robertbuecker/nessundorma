@@ -97,7 +97,7 @@ async def main():
     await sound.play(fn, loop, vol)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
     loop.run_until_complete(main())
