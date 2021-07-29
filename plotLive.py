@@ -497,7 +497,7 @@ class MainWindow(QtGui.QWidget):
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')
             self.angle_indicator.setText(f'{angles[0]},{angles[1]},{angles[2]}')
                             
-            if self.update_graph.isChecked() and d_T > jitter_limit:
+            if self.update_graph.isChecked():
                                 
                 inplane = angles[2]
                 # print(pg.hsvColor(angles[2]/np.pi).getRgb())
