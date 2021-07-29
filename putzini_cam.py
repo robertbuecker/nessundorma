@@ -118,10 +118,10 @@ class PutziniCam:
                     self.position = self.RT_rp[:3,-1]
                     self.alpha = alpha
                     self.timestamp = time.time()
+                    self.logger.debug('Have raw cam data: %s deg; %s pos', self.alpha.round(1), self.position.round(2))
                     # asyncio.ensure_future(self.mqtt_client.publish("putzini/state",json.dumps({'navstatus': 'OK'}),qos=0))  
 
                 # asyncio.ensure_future(self.mqtt_client.publish("putzini/position",repr(self.RT_rp),qos=0))  
-                
 
     # def zero_here(self): # sets position and Z-angle of c and m coordinate systems equal
 

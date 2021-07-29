@@ -82,7 +82,8 @@ class PutziniNav2:
         self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
         self._alpha_buffer = [np.array([0., 0., 0.])]
         self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
-        self.position = self.anchor_pos.mean(axis=0)
+        # self.position = self.anchor_pos.mean(axis=0)
+        self.position = np.array([-2., 2., 0.])
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
@@ -178,7 +179,10 @@ class PutziniNav2:
 
             ela = time.time() - self.timestamp
             # print(round(ela*1000))
-            await asyncio.sleep(self.t_update/1000. - ela)
+            dt = self.t_update/1000. - ela
+            if dt < 0:
+                self.logger.debug('Update position underrun by %.1f ms', -1000*dt)
+            await asyncio.sleep(dt)
 
             self.timestamp = time.time()                
             
@@ -221,7 +225,7 @@ class PutziniNav2:
                 N_alpha_valid = 1
                 alpha_cam = self.cam.get_angle()
                 alpha_room = (alpha_cam - self.config.room_rotation - self.config.cam_rotation + 180) % 360 - 180
-                self.logger.info('Angle from camera is %s raw, %s w.r.t. room CS.', alpha_cam, alpha_room)
+                self.logger.debug('Angle from camera is %s raw, %s w.r.t. room CS.', alpha_cam, alpha_room)
                 self.alpha = np.array([alpha_room, 0, 0])
 
             tw = time.time() - t0
@@ -244,7 +248,8 @@ class PutziniNav2:
             try:
                 self.keepout.validate(self.position[0], self.position[1])
             except KeepoutError as err:
-                print(err)
+                self.state.set_error(str(err))
+                self.logger.error('%s', err)
 
             # self.position = pos_solve(self.distances, self.anchor_pos, self.position)/100.
             # print(f'N = {N_valid}; d = {(self.distances*100).round(1)} cm; x = {(self.position*100).round(1)} cm; tOpt = {(time.time()-t0)*1000:.0f} ms')
@@ -376,11 +381,11 @@ class PutziniNav2:
         d_trajectory = np.diff(trajectory, axis=0)
         angle_trajectory = np.arctan2(d_trajectory[:,1], d_trajectory[:,0]) * 180/np.pi
         angle_sensor = (buffer[:-1,2] + buffer[1:,2])/2
-        d_angle = (angle_trajectory - angle_sensor + 180) % 360 - 180
-        angle_dev = np.mean(d_angle[len(d_angle)//4:])
-        angle_dev_std = np.std(d_angle[len(d_angle)//4:])
-        angle_dev_med = np.median(d_angle[len(d_angle)//4:])
-        print(angle_trajectory, angle_sensor)
-        print(f'Angle deviation is {angle_dev}, SD {angle_dev_std}, Median {angle_dev_med}.')
+        # d_angle = (angle_trajectory - angle_sensor + 180) % 360 - 180
+        # angle_dev = np.mean(d_angle[len(d_angle)//4:])
+        # angle_dev_std = np.std(d_angle[len(d_angle)//4:])
+        # angle_dev_med = np.median(d_angle[len(d_angle)//4:])
+        # print(angle_trajectory, angle_sensor)
+        # print(f'Angle deviation is {angle_dev}, SD {angle_dev_std}, Median {angle_dev_med}.')
         # d_trajectory = median_filter()
         

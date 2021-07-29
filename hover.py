@@ -49,10 +49,14 @@ from putzini_config import PutziniConfig
 from putzini_nav import PutziniNav2
 from putzini_cam import PutziniCam
 from putzini_state import PutziniState
-from putzini_keepout import PutziniKeepoutArea, KeepoutError
+from putzini_keepout import PutziniKeepoutArea, PathForbiddenError
+from putzini_sound import PutziniSound
+from putzini_drive import PutziniDrive
 from inspect import isawaitable
 import csv
 import logging
+
+logger = logging.getLogger('hover')
 
 class PutziniNeckAndVacuum:
     def __init__(self):
@@ -101,191 +105,15 @@ class PutziniNeckAndVacuum:
         frame = struct.pack(">lBBB",0, self.speed, self.vacuum, self.aux)
         self.writer.write(frame)
 
-class PutziniDrive:
-
-    START_FRAME = 0xABCD
-    
-    def __init__(self, mqtt_client):
-        self.mqtt_client = mqtt_client
-    
-        self.meas_speed_l = 0
-        self.meas_speed_r = 0
-        self.bat_voltage = 0
-        self.temperature = 0
-        
-        self.speed_l = 0
-        self.speed_r = 0
-        
-        self.distance_to_move_l = 0
-        self.distance_to_move_r = 0
-        
-        self.read_error = True
-        
-        self.loop = asyncio.get_event_loop()
-        self.finished = self.loop.create_future()
-        self.finished.set_result(None)
-        self.period = 50e-3
-        self.wheel_balance = 1.05 # >1 -> make it move rather to the right
-
-    async def connect(self, url='/dev/serial/by-path/platform-70090000.xusb-usb-0:2.4:1.0-port0', baudrate=38400):
-        self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)       
-        asyncio.ensure_future(self._reader_task())
-        asyncio.ensure_future(self._writer_task())
-         
-    async def _reader_task(self):
-        msg=b''
-        i = 0
-        while True:
-            msg = await self.reader.read(18)
-            if len(msg) == 18:
-                msg=struct.unpack('HhhhhhhHH',msg)
-                if msg[0] == PutziniDrive.START_FRAME and msg[8] == (msg[0] ^ msg[1] ^ msg[2] ^ msg[3] ^ msg[4] ^ msg[5] ^ msg[6] ^ msg[7]) & 0xffff:
-                    self.read_error = False
-                    self.meas_speed_l = msg[4]*2
-                    self.meas_speed_r = msg[3]*-2
-                    self.bat_voltage = msg[5]/100
-                    self.temperature = msg[6]/10
-                    
-                    self.distance_to_move_l -= abs(self.meas_speed_l)
-                    self.distance_to_move_r -= abs(self.meas_speed_r)
-                    
-                    i += 1
-                    if i > 200:
-                        asyncio.ensure_future(self.mqtt_client.publish("putzini/v_batt", self.bat_voltage, qos=0))
-                        asyncio.ensure_future(self.mqtt_client.publish("putzini/temp", self.temperature, qos=0))
-                        i=0
-                    
-                    #print(f"cmd1 {msg[1]}, cmd2: {msg[2]}, spdR:{msg[3]}, spdL:{msg[4]}, batVoltage: {msg[5]/100}, temp: {msg[6]/10}")
-                else:
-                    self.read_error = True
-	                
-    async def _writer_task(self):
-        while True:
-            await asyncio.sleep(self.period)
-            speed_r = 0
-            speed_l = 0
-            
-            if not self.read_error and self.distance_to_move_l > 0:
-                speed_l = self.speed_l
-                
-            if not self.read_error and self.distance_to_move_r > 0:
-                speed_r = self.speed_r
-            
-            if not self.read_error and self.distance_to_move_r <= 0 and self.distance_to_move_l <= 0:
-                if not self.finished.done():
-                    self.finished.set_result(None) 
-            
-            # set
-            self.moving = speed_r > 0 or speed_l > 0
-            
-            # WHEEL FUDGE FACTOR
-            # for motor imbalance. Note that "r" means the LEFT wheel seen from behind!
-            speed_l = int(speed_l * self.wheel_balance)
-            speed_r = int(speed_r * 1/self.wheel_balance)
-        
-            frame = struct.pack('HhhH',PutziniDrive.START_FRAME, speed_r, speed_l, (PutziniDrive.START_FRAME ^ speed_r ^ speed_l) & 0xffff)
-            self.writer.write(frame)
-
-    def stop(self):
-        print('IMMEDIATE STOP')
-        self.distance_to_move_r = 0
-        self.distance_to_move_l = 0
-
-
-    def move_r(self, dist):
-        self.distance_to_move_r = abs(int(dist))
-        if self.finished.done():
-            self.finished = loop.create_future()
-    
-    def move_l(self,dist):
-        self.distance_to_move_l = abs(int(dist))
-        if self.finished.done():
-            self.finished = loop.create_future()
-        
-    def set_speed_l(self, speed):
-        self.speed_l = int(speed)
-        
-    def set_speed_r(self, speed):
-        self.speed_r = int(speed)
-        
-    def turn(self, angle, speed=60):
-        if int(angle) < 0:
-            speed*=-1
-        self.set_speed_l(-int(speed))
-        self.set_speed_r(int(speed))
-        self.move_r(int(angle))
-        self.move_l(int(angle))
-        if self.finished.done():
-            self.finished = loop.create_future()
-            
-    def move(self, dist, speed=60):
-        if int(dist) < 0:
-            speed *=-1
-        self.set_speed_r(speed)
-        self.set_speed_l(speed)
-        self.distance_to_move_l = abs(int(dist))
-        self.distance_to_move_r = abs(int(dist))
-        if self.finished.done():
-            self.finished = loop.create_future()
-
-class PutziniSound:
-    def __init__(self, dev_name):
-        self.wave = None
-        self.play_obj = None
-        self.dev = dev_name
-        try:
-            # Activate the proper sound device
-            print('Activating sound device: ', dev_name)
-            assert subprocess.run(['pactl', 'set-default-sink', 
-            dev_name]).returncode == 0
-        except:
-            print('Could not initialize sound device, sorry.')
-
-    async def play(self, fn, loop=False, vol=None):
-        if self.play_obj is not None and self.play_obj.is_playing():
-            self.play_obj.stop()
-            self.play_obj = None
-
-        print(f'Loading wave file {fn}...')
-        self.wave = sa.WaveObject.from_wave_file(fn)
-
-        fn_lbl = fn.rsplit('.', 1)[0] + '.txt'
-        if os.path.isfile(fn_lbl):
-            print(f'Found corresponding label file {fn_lbl}')
-            with open(fn_lbl, newline='') as fh:
-                reader = csv.DictReader(delimiter='\t')
-
-        assert subprocess.run(['pactl', 'set-sink-volume', self.dev, f'{int(vol)}%']).returncode == 0            
-        self.play_obj = self.wave.play()
-
-        self.fn = ''
-
-        while True:
-            if (self.play_obj is not None) and self.play_obj.is_playing():
-                await asyncio.sleep(0.5)
-            elif (self.play_obj is not None) and loop: 
-                print(f'Restarting wave file {fn}.')
-                self.play_obj = self.wave.play()
-            else:
-                print(f'Stopped wave file {fn}.')
-                break
-
-    def stop(self):
-        if self.play_obj is not None:
-            self.play_obj.stop()
-            self.play_obj = None
-
-        self.wave = None
-
 class Putzini:
     def __init__(self, mqtt_client):
+        self.logger = logger
         self.config = PutziniConfig()
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
-        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive, self.state)
+        self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
         self.cam = PutziniCam(mqtt_client)
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout, self.cam)
-        # self.nav2 = PutziniNav2(mqtt_client, self.state)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
         self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
@@ -295,6 +123,8 @@ class Putzini:
         self.putz_per_degree_array = np.ones(10)*self.putz_per_degree
         
         self.putz_per_meter = 17241*0.9
+
+        self.command_state = {}
 
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
@@ -368,7 +198,7 @@ class Putzini:
         if speed < 0:
             a += 180
         
-        print (f"Look from {start} at {end}: turn to {a}°")
+        self.logger.info(f"Look from {start.round(3)*100} at {end.round(3)*100}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10, evade=True):
@@ -376,7 +206,8 @@ class Putzini:
         x= int(x) / 100
         y= int(y) / 100
         accuracy = int(accuracy) / 100
-        
+        target = np.array([x,y])
+        ii = 0
         while True: 
             start = self.nav.get_position()
             end = np.array([x,y])
@@ -384,9 +215,10 @@ class Putzini:
             # print(start, end)
             try:
                 self.keepout.validate(start[0], start[1], end[0], end[1])
-            except KeepoutError as err:
+            except PathForbiddenError as err:
                 if evade:
-                    print(f'Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
+                    print(f'move_abs: Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
+                    #TODO better logic about circle direction
                     await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
                 else:
                     raise err
@@ -395,13 +227,14 @@ class Putzini:
             distance = np.linalg.norm(diff)
             
             if distance < accuracy:
+                self.logger.info(f"move_abs: goal {target.round(3)*100} reached within {accuracy*100} cm.")
                 break
             
             a = math.atan2(diff[1], diff[0])/math.pi*180
             if speed < 0:
                 a += 180
             
-            print (f"move from {start} to {end}: turn to {a}° and drive {distance}m.")
+            self.logger.info(f"move_abs: segment {ii:02d}: {start.round(3)*100} to {end.round(3)*100}: {a:.1f}°, {distance*100:.1f} cm.")
             await self.turn_absolute(a, np.abs(speed), accuracy=max(3,10*min(distance,1)))
             
             if distance > 1:
@@ -410,6 +243,8 @@ class Putzini:
             
             await self.drive.finished
             self.nav.tell_straight_move_done()
+
+            ii += 1
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
@@ -423,15 +258,21 @@ class Putzini:
         await self.move_absolute(final_pos[0]*100, final_pos[1]*100, speed=speed, accuracy=accuracy, evade=False)
             
     async def move_random(self, speed=60, xmin=0, xmax=0, ymin=0, ymax=0):
+        ii_failed = 0
         while True:
             next_x = random.randint(xmin, xmax)
             next_y = random.randint(ymin, ymax)
-            print(f'Random step to {next_x}, {next_y}, speed: {speed}')
+            self.logger.info(f'move_random: Random step to {next_x.round(3)*100}, {next_y.round(3)*100}, speed: {speed}')
             try:
                 await self.move_absolute(next_x, next_y, speed, accuracy=40, evade=False)
-            except KeepoutError as err:
-                print(f'Random move is impossible: {err}. Trying another...')
-                pass
+                ii_failed = 0
+            except PathForbiddenError as err:
+                if ii_failed > 100:
+                    self.logger.warning('move_random: Tried 100 random moves, all were forbidden. Abandoning.')
+                    raise err
+                else:
+                    ii_failed += 1
+                    self.logger.debug(f'move_random: Random move is forbidden: {err}. Trying another...')
             
     async def move_circle(self, speed=60, stride=1, exit_x=None, exit_y=None):
         speed = int(speed)
@@ -439,44 +280,46 @@ class Putzini:
         waypoints = np.stack([self.config.waypoint_x, self.config.waypoint_y]).T/100
         distances = ((self.nav.get_position().reshape(1,2) - waypoints)**2).sum(axis=1)**.5
         cur_step = np.argmin(distances)
-        print(f'Starting circle with {N_steps} waypoints. Distances are {distances}; closest point is {cur_step}')
+        self.logger.info(f'move_circle: starting with {N_steps} waypoints. Distances are {distances.round(3)*100} cm; closest point is {cur_step}')
         while True:
-            print(f'Moving to step {cur_step} at {waypoints[cur_step,:]}')
+            self.logger.info(f'move_circle: to circle step {cur_step} at {waypoints[cur_step,:]}')
             await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], 
                 speed=speed, accuracy=40, evade=False)
             cur_step = (cur_step + stride) % N_steps
             if (exit_x is not None) and (exit_y is not None):
                 pos = self.nav.get_position()
                 if not self.keepout.is_line_forbidden(pos[0], pos[1], exit_x/100., exit_y/100.):
-                    print(f'Path to exit position {exit_x}, {exit_y} is open. Moving there and stopping.')
+                    self.logger.info(f'move_circle: path to exit position {exit_x}, {exit_y} is open. Moving there and stopping.')
                     await self.move_absolute(exit_x, exit_y, speed=speed, accuracy=10, evade=False)
                     break
             
     async def move_straight(self, distance=0, speed=60, xmin=None, xmax=None, ymin=None, ymax=None):
         #TODO CATCH INVALID END COORDINATE
-        distance, xmin, xmax, ymin, ymax = (int(p) / 100 for p in (distance, xmin, xmax, ymin, ymax))
+        distance, xmin, xmax, ymin, ymax = ((int(p) / 100 if p is not None else None) for p in (distance, xmin, xmax, ymin, ymax))
         dist_putz = self.putz_per_meter*distance
         ini_pos = self.nav.get_position()
         final_pos = ini_pos + [np.cos(self.nav.get_angle()*np.pi/180)*distance, np.sin(self.nav.get_angle()*np.pi/180)*distance]
         speed = np.abs(int(speed))
+
         if (xmin is not None and (final_pos[0] < xmin)) or (xmax is not None and (final_pos[0] > xmax)) \
                 or (ymin is not None and (final_pos[1] < ymin)) or (ymax is not None and (final_pos[1] > ymax)):
-            raise ValueError(f'Final position {final_pos} of straight move would be outside bounds')
-        print(f'Straight move by {distance} m = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
-        self.keepout.validate(x1=ini_pos[0], y1=ini_pos[1], x2=final_pos[0], y2=final_pos[1])
+            raise PathForbiddenError(f'Straight move beyond defined bounds', ini_pos, final_pos)
+
+        self.keepout.validate(ini_pos[0], ini_pos[1], final_pos[0], final_pos[1])
+        self.logger.info(f'move_straight: Straight move by {distance.round(3)*100} cm = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
         self.drive.move(dist_putz, speed=-speed)
         await self.drive.finished
-        print(f'Straight move finished. Actual pos is {self.nav.get_position()} -> {self.nav.get_position() - final_pos} off ({((self.nav.get_position() - final_pos)**2).sum()**.5:.3f} m).')
+        self.logger.info(f'move_straight: finished. Actual pos is {self.nav.get_position()} -> {self.nav.get_position() - final_pos} off ({((self.nav.get_position() - final_pos)**2).sum()**.5:.3f} m).')
 
     async def move_back_forth(self, range=0, max_angle=15, speed=60, random=1, xmin=None, xmax=None, ymin=None, ymax=None):
         curr_pos_linear = 0
         new_d = 0
         start_pos = self.nav.get_position()
         start_angle = self.nav.get_angle()
-
+        ii_failed = 0
         while True:
             a = ((self.nav.get_angle() - start_angle) + 180) % 360 - 180
-            print(f'Back-and-forth angle deviation is now {a}')
+            self.logger.info(f'Back-and-forth angle deviation is now {a}')
             if abs(a) > max_angle:
                 await self.turn_absolute(start_angle, speed=50, accuracy=max_angle/2, slow_angle=max_angle)
             if new_d >= 0:
@@ -485,12 +328,16 @@ class Putzini:
                 new_d = np.random.randint(1, range//2+1-curr_pos_linear) if random else range//2
             try:
                 await self.move_straight(distance=new_d, speed=speed, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-            except KeepoutError as err:
+                ii_failed = 0
+            except PathForbiddenError as err:
                 if random:
-                    print(f'Back-forth move is impossible: {err}. Trying another...')
-                    continue
+                    if ii_failed > 100:
+                        self.logger.warning('Tried 100 random B-F moves, all were impossible. Abandoning.')
+                        raise err
+                    else:
+                        ii_failed += 1
+                        self.logger.debug(f'Random B-F move is forbidden: {err}. Trying another...')
                 else:
-                    print('Requested back-forth move is impossible.')
                     raise err
                     
             except ValueError as err:
@@ -528,45 +375,50 @@ def parse_command(fun, npar, com):
 
 
 async def parse_json_commands(messages, putzini: Putzini):
+    #TODO why is this not a method of Putzini?
     move_task = asyncio.Future()
     async for message in messages:
 
         try:
             cmd = json.loads(message.payload.decode("utf-8"))                    
         except Exception as e:
-            print(e)
-            print(f"Error parsing {message.payload.decode('utf-8')}")
+            logger.exception(f"parse_json_commands: Error parsing {message.payload.decode('utf-8')}")
             cmd = {}
 
         try:
-            print (f"Executing: {cmd}")
+            cmd = {k: v for k, v in cmd.items() if v is not None} # TODO see if this really works
+            putzini.command_state.update(cmd)
+
+            logger.info(f"parse_json_commands: Executing: {cmd}")
+            logger.info(f"parse_json_commands: Global state is {putzini.command_state}")
+
             if "lamp" in cmd and cmd["lamp"] != None:
                 l = cmd["lamp"]
                 putzini.lamp.set_lamp(l)
-                print(f"setting lampe to: {l}")
+                logger.info(f"parse_json_commands: setting lamp to: {l}")
 
             if "head" in cmd and cmd["head"] != None:
                 try:
                     h = int(cmd["head"])
                 except ValueError as err:
                     if isinstance(cmd['head'], str):
-                        print('Received Head Command:', cmd['head'])
+                        logger.info(f"parse_json_commands: Received Head Command:", cmd['head'])
                     else:
                         raise err
                 else:
                     putzini.lamp.set_head(h)
-                    print(f"setting head to: {h}")
+                    logger.info(f"parse_json_commands: setting head to: {h}")
 
             if "height" in cmd and cmd["height"] != None:
                 h = int(cmd["height"])
                 putzini.neck.set_position(h)
-                print(f"setting neck to {h}")
+                logger.info(f"parse_json_commands: setting neck to {h}")
 
 
             if "vacuum" in cmd and cmd["vacuum"] != None:
                 v = int(cmd["vacuum"])
                 putzini.neck.set_vacuum(v)
-                print(f"switching vacuum cleaner {'on' if v==1 else 'off'}")
+                logger.info(f"parse_json_commands: switching vacuum cleaner {'on' if v==1 else 'off'}")
 
             if 'audio' in cmd and cmd["audio"] != None:
                 acmd = cmd["audio"]
@@ -574,7 +426,7 @@ async def parse_json_commands(messages, putzini: Putzini):
                     putzini.sound.stop()
                 else:
                     fn = os.path.join('/home/putzini/audio', acmd['folder'], acmd['file'])
-                    print('Trying to play audio file', fn, 'at volume', acmd['vol'], 'as', ('loop' if acmd['loop'] else 'one-shot'))
+                    logger.info("parse_json_commands: Triggering audio file %s at volume %s as %s", fn, acmd['vol'], ('loop' if acmd['loop'] else 'one-shot'))
                     asyncio.ensure_future(putzini.sound.play(fn, bool(acmd['loop'] ), acmd['vol']))
 
             if "move" in cmd and cmd["move"] != None:
@@ -594,10 +446,10 @@ async def parse_json_commands(messages, putzini: Putzini):
                     # await putzini.move_relative(*pp)
                     putzini.state.set_active()
                     move_task = asyncio.ensure_future(putzini.move_relative(*pp))      
-                    print(pp)
+                    # print(pp)
                 elif cmd["move"].startswith("moveToAngle"):
                     pp = parse_command("moveToAngle", 2, cmd["move"])
-                    print(pp)
+                    # print(pp)
                     move_task.cancel()
                     putzini.drive.stop()
                     putzini.state.set_active()
@@ -657,8 +509,8 @@ async def parse_json_commands(messages, putzini: Putzini):
                 move_task.add_done_callback(putzini.state.set_idle)       
 
         except Exception as e:
-            print(e)
-            print(f"Error executing {message.payload.decode('utf-8')}:")
+            # print(e)
+            logger.exception(f"parse_json_commands: Error executing {message.payload.decode('utf-8')}:")
 
 
 async def main():
