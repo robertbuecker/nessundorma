@@ -57,6 +57,7 @@ import csv
 import logging
 
 logger = logging.getLogger('hover')
+np.set_printoptions(precision=3, sign='+')
 
 class PutziniNeckAndVacuum:
     def __init__(self):
@@ -116,7 +117,7 @@ class Putzini:
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout, self.cam)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
-        self.sound = PutziniSound(dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
+        self.sound = PutziniSound(mqtt_client, dev_name='alsa_output.usb-Generic_TX-Hifi_Type_C_Audio-00.analog-stereo')
         self.mqtt_client = mqtt_client
         
         self.putz_per_degree = 50
@@ -139,7 +140,7 @@ class Putzini:
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
 
-        # print(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
+        self.logger.info(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
         fudge = 1
         prev_a = 0
         close_to_target = False
@@ -159,7 +160,7 @@ class Putzini:
                 fudge = max(0.1,fudge*0.7)
             prev_a = a
 
-            # print(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
+            self.logger.debug(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
 
             if abs(a) < slow_angle:
                 speed = min(speed,50)
@@ -217,7 +218,7 @@ class Putzini:
                 self.keepout.validate(start[0], start[1], end[0], end[1])
             except PathForbiddenError as err:
                 if evade:
-                    print(f'move_abs: Direct move to {end*100} cm is forbidden. Attempting to go via waypoints.')
+                    self.logger.warning(f'move_abs: Direct move from {start*100} to {end*100} cm is forbidden. Attempting to go via waypoints.')
                     #TODO better logic about circle direction
                     await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
                 else:
@@ -262,7 +263,7 @@ class Putzini:
         while True:
             next_x = random.randint(xmin, xmax)
             next_y = random.randint(ymin, ymax)
-            self.logger.info(f'move_random: Random step to {next_x.round(3)*100}, {next_y.round(3)*100}, speed: {speed}')
+            self.logger.info(f'move_random: Random step to {next_x}, {next_y}, speed: {speed}')
             try:
                 await self.move_absolute(next_x, next_y, speed, accuracy=40, evade=False)
                 ii_failed = 0
@@ -306,7 +307,7 @@ class Putzini:
             raise PathForbiddenError(f'Straight move beyond defined bounds', ini_pos, final_pos)
 
         self.keepout.validate(ini_pos[0], ini_pos[1], final_pos[0], final_pos[1])
-        self.logger.info(f'move_straight: Straight move by {distance.round(3)*100} cm = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
+        self.logger.info(f'move_straight: Straight move by {round(distance, 3)*100} cm = {dist_putz:.3f} putz. Estimated final position is {final_pos}.')
         self.drive.move(dist_putz, speed=-speed)
         await self.drive.finished
         self.logger.info(f'move_straight: finished. Actual pos is {self.nav.get_position()} -> {self.nav.get_position() - final_pos} off ({((self.nav.get_position() - final_pos)**2).sum()**.5:.3f} m).')
@@ -317,9 +318,10 @@ class Putzini:
         start_pos = self.nav.get_position()
         start_angle = self.nav.get_angle()
         ii_failed = 0
+        self.logger.info(f'move_back_forth: started at angle {start_angle:.1f}, range {range}, speed {speed}, max dev. {max_angle}')
         while True:
             a = ((self.nav.get_angle() - start_angle) + 180) % 360 - 180
-            self.logger.info(f'Back-and-forth angle deviation is now {a}')
+            self.logger.debug(f'move_back_forth: angle deviation is now {a:.1f}')
             if abs(a) > max_angle:
                 await self.turn_absolute(start_angle, speed=50, accuracy=max_angle/2, slow_angle=max_angle)
             if new_d >= 0:
@@ -390,7 +392,7 @@ async def parse_json_commands(messages, putzini: Putzini):
             putzini.command_state.update(cmd)
 
             logger.info(f"parse_json_commands: Executing: {cmd}")
-            logger.info(f"parse_json_commands: Global state is {putzini.command_state}")
+            # logger.info(f"parse_json_commands: Global state is {putzini.command_state}")
 
             if "lamp" in cmd and cmd["lamp"] != None:
                 l = cmd["lamp"]
@@ -505,6 +507,8 @@ async def parse_json_commands(messages, putzini: Putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     putzini.nav.set_reference_position(clear=True)
+                else:
+                    logger.error("parse_json_commands: Unknown command: %s", cmd["move"])
                 
                 move_task.add_done_callback(putzini.state.set_idle)       
 
