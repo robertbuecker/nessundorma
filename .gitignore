@@ -12,3 +12,6 @@ opera_data
 .ipynb_checkpoints
 !launch.json
 __pycache__
+*.log
+*.pcd
+mqtt_handler.py
