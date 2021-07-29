@@ -55,6 +55,14 @@
             "args": []
         } ,             
         {
+            "name": "Putzini Sound",
+            "type": "python",
+            "request": "launch",
+            "program": "putzini_sound.py",
+            "console": "integratedTerminal",
+            "args": ["../audio/endarbeit/arie_6_hard.wav", "0", "50"]
+        } ,                
+        {
             "name": "Sequencer",
             "type": "python",
             "request": "launch",

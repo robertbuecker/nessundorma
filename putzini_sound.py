@@ -7,6 +7,8 @@ import asyncio
 import os
 import logging
 from sys import argv
+from time import time
+from copy import copy
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +36,37 @@ class PutziniSound:
         self.wave = sa.WaveObject.from_wave_file(fn)
 
         fn_lbl = fn.rsplit('.', 1)[0] + '.txt'
-        if os.path.isfile(fn_lbl):
-            self.logger.info(f'Found corresponding label file %s', fn_lbl)
-            with open(fn_lbl, newline='') as fh:
-                reader = csv.DictReader(delimiter='\t')
+        have_labels = os.path.isfile(fn_lbl)
+
+        if have_labels and loop:
+            self.logger.warning('Cannot loop file %s becaues it has trigger labels. Deactivating loop.', fn)
+            loop = False
 
         assert subprocess.run(['pactl', 'set-sink-volume', self.dev, f'{int(vol)}%']).returncode == 0            
         self.play_obj = self.wave.play()
+        t0 = time()
 
         self.fn = ''
 
         while True:
             if (self.play_obj is not None) and self.play_obj.is_playing():
-                await asyncio.sleep(0.5)
+                if have_labels:
+                    self.logger.info(f'Found corresponding label file %s', fn_lbl)
+                    with open(fn_lbl, newline='') as fh:
+                        reader = csv.DictReader(fh, delimiter='\t', fieldnames=['start', 'end', 'text'])
+                        prev_start = 0.
+                        for step in reader:
+                            start = float(step['start'])
+                            await asyncio.sleep(start-prev_start)
+                            prev_start = copy(start)
+                            txt = step['text'].split(',')
+                            label, speed, trigger = txt[0], int(txt[1]) if txt[1] else None, txt[2].strip() == 'T'
+                            self.logger.info('Passed label: %s at %.1f s. Trigger: %s. Speed: %s', start, label, trigger, speed)
+                            
+
+                        have_labels = False
+                else:
+                    await asyncio.sleep(0.5)
             elif (self.play_obj is not None) and loop: 
                 self.logger.info(f'Restarting wave file %s', fn)
                 self.play_obj = self.wave.play()
