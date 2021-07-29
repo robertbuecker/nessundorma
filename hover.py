@@ -78,7 +78,7 @@ class PutziniNeckAndVacuum:
 
     def move(self, steps , speed = 250):
         self.speed = speed
-        frame = struct.pack(">lB",int(steps), self.speed)
+        frame = struct.pack(">lBB",int(steps), self.speed, self.vacuum)
         self.writer.write(frame)
 
     def set_position(self, position):
@@ -217,7 +217,7 @@ class Putzini:
             try:
                 self.keepout.validate(start[0], start[1], end[0], end[1])
             except PathForbiddenError as err:
-                if evade:
+                if evade and not self.keepout.is_point_forbidden(end[0], end[1]):
                     self.logger.warning(f'move_abs: Direct move from {start*100} to {end*100} cm is forbidden. Attempting to go via waypoints.')
                     #TODO better logic about circle direction
                     await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
@@ -391,7 +391,7 @@ async def parse_json_commands(messages, putzini: Putzini):
             cmd = {k: v for k, v in cmd.items() if v is not None} # TODO see if this really works
             putzini.command_state.update(cmd)
 
-            logger.info(f"parse_json_commands: Executing: {cmd}")
+            logger.debug(f"parse_json_commands: Executing: {cmd}")
             # logger.info(f"parse_json_commands: Global state is {putzini.command_state}")
 
             if "lamp" in cmd and cmd["lamp"] != None:
@@ -411,16 +411,18 @@ async def parse_json_commands(messages, putzini: Putzini):
                     putzini.lamp.set_head(h)
                     logger.info(f"parse_json_commands: setting head to: {h}")
 
-            if "height" in cmd and cmd["height"] != None:
-                h = int(cmd["height"])
-                putzini.neck.set_position(h)
-                logger.info(f"parse_json_commands: setting neck to {h}")
-
-
             if "vacuum" in cmd and cmd["vacuum"] != None:
                 v = int(cmd["vacuum"])
                 putzini.neck.set_vacuum(v)
                 logger.info(f"parse_json_commands: switching vacuum cleaner {'on' if v==1 else 'off'}")
+
+            if "height" in cmd and cmd["height"] != None:
+                h = int(cmd["height"])
+                if "vacuum" in cmd:
+                    # minimum required inter-call time for neck and vacuum calls
+                    await asyncio.sleep(10e-3)
+                putzini.neck.set_position(h)
+                logger.info(f"parse_json_commands: setting neck to {h}")
 
             if 'audio' in cmd and cmd["audio"] != None:
                 acmd = cmd["audio"]
@@ -432,6 +434,7 @@ async def parse_json_commands(messages, putzini: Putzini):
                     asyncio.ensure_future(putzini.sound.play(fn, bool(acmd['loop'] ), acmd['vol']))
 
             if "move" in cmd and cmd["move"] != None:
+                logger.info('parse_json_commands: Executing drive task: %s', cmd["move"])
                 if cmd["move"] == "stop()":
                     move_task.cancel()
                     putzini.drive.stop()
@@ -577,15 +580,15 @@ async def main():
         await client.subscribe("putzini/set_speed_l")
         tasks.add(asyncio.ensure_future(call_func_with_msg(messages, putzini.drive.set_speed_l)))
         
-        manager = client.filtered_messages("putzini/turn_absolute")
-        messages = await stack.enter_async_context(manager)
-        await client.subscribe("putzini/turn_absolute")
-        tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.turn_absolute)))
+        # manager = client.filtered_messages("putzini/turn_absolute")
+        # messages = await stack.enter_async_context(manager)
+        # await client.subscribe("putzini/turn_absolute")
+        # tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.turn_absolute)))
         
-        manager = client.filtered_messages("putzini/move_absolute")
-        messages = await stack.enter_async_context(manager)
-        await client.subscribe("putzini/move_absolute")
-        tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.move_absolute)))
+        # manager = client.filtered_messages("putzini/move_absolute")
+        # messages = await stack.enter_async_context(manager)
+        # await client.subscribe("putzini/move_absolute")
+        # tasks.add(asyncio.ensure_future(await_func_with_msg(messages, putzini.move_absolute)))
 
         manager = client.filtered_messages("putzini/head")
         messages = await stack.enter_async_context(manager)
@@ -630,8 +633,6 @@ async def main():
 
         await asyncio.gather(*tasks)
             
-
-        
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()      
