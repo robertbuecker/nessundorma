@@ -20,3 +20,4 @@ cam_rotation: 151.18
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 230, 163, 0, -163, -230, -163]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
+mqtt_broker: 172.31.1.150
