@@ -20,6 +20,7 @@ class PutziniConfig:
         self.keepout_img = 'keepout.tiff'
         self.minimum_calib_level = 0
         self.max_distance = 700
+        self.mqtt_broker = '172.31.1.150'
         try:
             self.from_yaml()
         except FileNotFoundError:

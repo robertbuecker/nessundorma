@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-#typedef struct{
-#   uint16_t start;
-#   int16_t 	cmd1;
-#   int16_t 	cmd2;
-#   int16_t 	speedR_meas;
-#   int16_t 	speedL_meas;
-#   int16_t 	batVoltage;
-#   int16_t 	boardTemp;
-#   uint16_t cmdLed;
-#   uint16_t checksum;
-#} SerialFeedback;
 
 import asyncio
 import numpy as np
@@ -18,10 +7,6 @@ import yaml
 from sys import argv
 import os
 import time
-import subprocess
-# import skimage.io
-# import skimage.draw
-import imageio
 import logging
 
 import numpy as np
@@ -155,7 +140,9 @@ class PutziniCam:
 
 async def main():
     import asyncio_mqtt as mqtt
-    client = mqtt.Client("172.31.1.150")
+    from putzini_config import PutziniConfig
+    config = PutziniConfig()
+    client = mqtt.Client(config.mqtt_broker)
     t0 = time.time()
     cam = PutziniCam(client)
     await cam.start()
