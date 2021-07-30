@@ -95,7 +95,7 @@ class TimedMessageDispatcher:
                 elif event["trigger"]:
                     # we don't have an awaited trigger?!
                     self.trigger_q.append(event["comment"])
-                    self.logger.warning('(%.1f) Trigger %s requested while not awaiting one. Trigger Q now has %s entries', 
+                    self.logger.warning('(%.1f) Trigger %s requested while not awaiting one. Trigger Q now has %s entries.', 
                                         ela, event["comment"], len(self.trigger_q))
                     
                 if ("speed" in event) and (event["speed"] is not None) and (event["speed"] > -1):
@@ -107,7 +107,7 @@ class TimedMessageDispatcher:
                     asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
                     
                 else:
-                    self.logger.warning('(%.1f) Passed label %s without action', ela, event["comment"])
+                    self.logger.warning('(%.1f) Passed label %s without sending anythng.', ela, event["comment"])
                     
                 if not event["trigger"]:
                     self.logger.info('(%.1f) Passed event %s without trigger.', ela, event["comment"])
