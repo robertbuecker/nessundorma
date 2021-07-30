@@ -38,6 +38,7 @@ class TimedMessageDispatcher:
         self.t0 = time()
         asyncio.ensure_future(self.enqueue_arms())
         asyncio.ensure_future(self.send_triggers())
+        self.logger.info('Trigger/Arm loops started.')
         
     async def enqueue_arms(self):
         async with self.mqtt_client as client:
@@ -59,21 +60,29 @@ class TimedMessageDispatcher:
                     
     async def send_triggers(self):
         
-        while self.label_list:
-
+        self.logger.debug('Trigger loop started.')
+        
+        while len(self.label_list) > 0:
+            
             while self.trigger_q and self.arm_q:
                 com_trig = self.trigger_q.popleft()
                 com_arm = self.arm_q.popleft()
                 self.logger.warning('Immediately answering %s due to waiting trigger %s', ela, com_arm, com_trig)
-                asyncio.ensure_future(self.client.publish('music/state'), json.dumps({'action': 'Trigger'}))
+                asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps({'action': 'Trigger'})))
                 await asyncio.sleep(0.05)
             
             # this is SO tedious without pandas...
             ela = time() - self.t0
+            self.logger.debug('(%.1f) Next label is %s.', ela, self.label_list[0])
+            
             passed = [lbl for lbl in self.label_list if lbl['time'] <= ela]
             self.label_list = [lbl for lbl in self.label_list if lbl['time'] > ela]
             
+            self.logger.debug('%s labels passed since last iteration; %s remaining', len(passed), len(self.label_list))
+            
             for event in passed:
+                
+                self.logger.debug('Processing event %s', event)
 
                 msg = {}
                 if event["trigger"] and self.arm_q:
@@ -89,13 +98,13 @@ class TimedMessageDispatcher:
                     self.logger.warning('(%.1f) Trigger %s requested while not awaiting one. Trigger Q now has %s entries', 
                                         ela, event["comment"], len(self.trigger_q))
                     
-                if event["speed"] > -1:
+                if ("speed" in event) and (event["speed"] is not None) and (event["speed"] > -1):
                     msg["speed"] = event["speed"]
                     self.logger.info('(%.1f) Changing speed to %s as requested by %s', ela, event["speed"], event["comment"])
                     
                 if len(msg) > 0:
                     self.logger.debug('(%.1f) Sending message: %s', ela, msg)
-                    asyncio.ensure_future(self.client.publish('music/state'), json.dumps(msg))
+                    asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
                     
                 else:
                     self.logger.warning('(%.1f) Passed label %s without action %s', ela, event["comment"])
@@ -103,7 +112,7 @@ class TimedMessageDispatcher:
                 if not event["trigger"]:
                     self.logger.info('(%.1f) Passed event %s without trigger.', ela, event["comment"])
                     
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(1)
 
 async def main():
     import asyncio_mqtt as mqtt
@@ -124,8 +133,11 @@ async def main():
             stp['trigger'] = txt[2].strip() == 'T'
             lbls.append(stp)
             
+    logger.info('Have label list with %s entries', len(lbls))
     timing.label_list = lbls
     await timing.start()
+    while True:
+        await asyncio.sleep(1)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

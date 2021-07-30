@@ -29,12 +29,12 @@ class PutziniConfig:
 
     def to_yaml(self):
         opts = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
-        print(opts)
+        # print(opts)
         yaml.dump(opts, open('putzini.yaml', 'w'))
 
     def from_yaml(self):
         opts = yaml.load(open('putzini.yaml', 'r'))
-        print(opts)
+        # print(opts)
         for k, v in opts.items():
             if hasattr(self, k):
                 setattr(self, k, v)

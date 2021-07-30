@@ -73,6 +73,17 @@
                 "https://docs.google.com/spreadsheets/d/1eL5SeBSRI3zesDSkMZZxjDXA-7S3DDFXzgmO4eSncLY"
             ]
             // "args": ["0"]
+        },
+        {
+            "name": "Timing dispatcher",
+            "type": "python",
+            "request": "launch",
+            "program": "timed_message_dispatcher.py",
+            "console": "integratedTerminal",
+            "args": [
+                "opera.txt"
+            ]
+            // "args": ["0"]
         }
     ]
 }
