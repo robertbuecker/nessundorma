@@ -27,6 +27,8 @@ class TimedMessageDispatcher:
         self.trigger_q = deque([])
         self.label_list = defaultdict
         self.t0 = 0.
+        self._ea = None
+        self._st = None
         
     def add_arm_message(self, topic, payload: Optional[str] = None, json_key: Optional[str] = None):
         self._arm_messages.append({topic: (payload, json_key)})
@@ -34,11 +36,17 @@ class TimedMessageDispatcher:
     def add_trigger_message(self, topic, payload: Optional[str] = None, json_keys: Optional[Union[list, tuple]] = (), send: bool = True):
         self._trigger_messages.append({topic: (payload, json_keys, send)})
         
-    async def start(self):
+    def start(self):
         self.t0 = time()
-        asyncio.ensure_future(self.enqueue_arms())
-        asyncio.ensure_future(self.send_triggers())
+        self._ea = asyncio.ensure_future(self.enqueue_arms())
+        self._st = asyncio.ensure_future(self.send_triggers())
         self.logger.info('Trigger/Arm loops started.')
+        
+    def stop(self):
+        if self._ea is not None:
+            self._ea.cancel()
+        if self._st is not None:
+            self._st.cancel()
         
     async def enqueue_arms(self):
         async with self.mqtt_client as client:
@@ -135,7 +143,7 @@ async def main():
             
     logger.info('Have label list with %s entries', len(lbls))
     timing.label_list = lbls
-    await timing.start()
+    timing.start()
     while True:
         await asyncio.sleep(1)
 
