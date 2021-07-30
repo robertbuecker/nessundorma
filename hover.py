@@ -381,6 +381,7 @@ async def parse_json_commands(messages, putzini: Putzini):
                 if cmd["move"] == "stop()":
                     move_task.cancel()
                     putzini.drive.stop()
+                    putzini.state.set_idle()
                 elif cmd["move"].startswith("moveToPos"):
                     pp = parse_command("moveToPos", 4, cmd["move"])
                     move_task.cancel()
