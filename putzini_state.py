@@ -29,7 +29,8 @@ class PutziniState:
                 # there was no exception, all is good
                 pass
             except asyncio.CancelledError as exc:
-                self.logger.info('Task %s was cancelled.', move_task)
+                self.logger.info('Task %s was cancelled, i.e. replaced by another. Not setting idle.', move_task)
+                return
             except PathForbiddenError as err:
                 self.logger.warning('Movement from task %s is forbidden: %s.', move_task, err)
             except KeepoutError as err:
@@ -38,6 +39,8 @@ class PutziniState:
                 return
             except Exception as err:
                 self.logger.error('Weird error during task %s: %s', err)
+        elif move_task is None:
+            self.logger.warning('Received set_idle without task. Probably a manual stop().')
 
         self.action = "Idle"
         self.message = ''
