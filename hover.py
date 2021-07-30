@@ -1,23 +1,6 @@
 #!/usr/bin/env python3
 
-import struct
-
-
-#typedef struct{
-#   uint16_t start;
-#   int16_t 	cmd1;
-#   int16_t 	cmd2;
-#   int16_t 	speedR_meas;
-#   int16_t 	speedL_meas;
-#   int16_t 	batVoltage;
-#   int16_t 	boardTemp;
-#   uint16_t cmdLed;
-#   uint16_t checksum;
-#} SerialFeedback;
-
-
 import asyncio
-import serial_asyncio
 import asyncio_mqtt as mqtt
 try:
     from contextlib import AsyncExitStack, asynccontextmanager
@@ -52,59 +35,15 @@ from putzini_state import PutziniState
 from putzini_keepout import PutziniKeepoutArea, PathForbiddenError
 from putzini_sound import PutziniSound
 from putzini_drive import PutziniDrive
+from putzini_neck_and_vacuum import PutziniNeckAndVacuum
+from putzini_mqtt_logging_handler import PutziniMqttLoggingHandler
+ 
 from inspect import isawaitable
 import csv
 import logging
 
 logger = logging.getLogger('hover')
 np.set_printoptions(precision=3, sign='+')
-
-class PutziniNeckAndVacuum:
-    def __init__(self):
-        self.current_pos = 0
-        self.calibrated = False
-        self.speed = 127
-        self.vacuum = 0
-        self.aux = 0
-        pass
-  
-    async def connect(self, url="/dev/serial/by-path/platform-70090000.xusb-usb-0:2.1:1.0-port0", baudrate=115200):
-        self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)
-        await asyncio.sleep(0.8)
-        self.set_aux(0)
-        await asyncio.sleep(3)
-        self.move(-30000)
-        self.calibrated = True
-
-    def move(self, steps , speed = 250):
-        self.speed = speed
-        frame = struct.pack(">lBB",int(steps), self.speed, self.vacuum)
-        self.writer.write(frame)
-
-    def set_position(self, position):
-        #convert to steps 
-        position = float(position)/0.005
-        if self.calibrated:
-            self.move(position-self.current_pos)
-            self.current_pos = position
-        else:
-            print("Error: Neck not calibrated")
-        
-    def set_zero(self, _ ):
-        self.current_pos = 0
-        self.calibrated = True
-        
-    def set_vacuum(self, onoff):
-        """0 == off, 1 == on"""
-        
-        self.vacuum = int(onoff)
-        frame = struct.pack(">lBB",0, self.speed, self.vacuum)
-        self.writer.write(frame)
-        
-    def set_aux(self, onoff):
-        self.aux = int(onoff)
-        frame = struct.pack(">lBBB",0, self.speed, self.vacuum, self.aux)
-        self.writer.write(frame)
 
 class Putzini:
     def __init__(self, mqtt_client):
@@ -136,6 +75,10 @@ class Putzini:
           
         await asyncio.gather(d, n, l, m, c)
         # await asyncio.gather(d, n, m)
+
+    async def update_command_state(self, new_commands: dict):
+        self.command_state.update(new_commands)
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/command_state", json.dumps(self.command_state)))
     
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
@@ -382,14 +325,14 @@ async def parse_json_commands(messages, putzini: Putzini):
     async for message in messages:
 
         try:
-            cmd = json.loads(message.payload.decode("utf-8"))                    
+            cmd = json.loads(message.payload.decode("utf-8"))                
         except Exception as e:
             logger.exception(f"parse_json_commands: Error parsing {message.payload.decode('utf-8')}")
             cmd = {}
 
         try:
             cmd = {k: v for k, v in cmd.items() if v is not None} # TODO see if this really works
-            putzini.command_state.update(cmd)
+            asyncio.ensure_future(putzini.update_command_state(cmd))
 
             logger.debug(f"parse_json_commands: Executing: {cmd}")
             # logger.info(f"parse_json_commands: Global state is {putzini.command_state}")
@@ -634,7 +577,9 @@ async def main():
         await asyncio.gather(*tasks)
             
 if __name__ == '__main__':
+    mqttHandler = PutziniMqttLoggingHandler("172.31.1.150", "putzini/logs")
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger('').addHandler(mqttHandler)
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
     loop.run_until_complete(main())
