@@ -107,7 +107,7 @@ class TimedMessageDispatcher:
                     asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
                     
                 else:
-                    self.logger.warning('(%.1f) Passed label %s without action %s', ela, event["comment"])
+                    self.logger.warning('(%.1f) Passed label %s without action', ela, event["comment"])
                     
                 if not event["trigger"]:
                     self.logger.info('(%.1f) Passed event %s without trigger.', ela, event["comment"])
