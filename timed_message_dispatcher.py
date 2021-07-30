@@ -73,7 +73,7 @@ class TimedMessageDispatcher:
             
             # this is SO tedious without pandas...
             ela = time() - self.t0
-            self.logger.debug('(%.1f) Next label is %s.', ela, self.label_list[0])
+            # self.logger.debug('(%.1f) Next label is %s.', ela, self.label_list[0])
             
             passed = [lbl for lbl in self.label_list if lbl['time'] <= ela]
             self.label_list = [lbl for lbl in self.label_list if lbl['time'] > ela]
