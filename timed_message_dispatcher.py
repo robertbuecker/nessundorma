@@ -27,6 +27,7 @@ class TimedMessageDispatcher:
         self.trigger_q = deque([])
         self.label_list = defaultdict
         self.t0 = 0.
+        self._running = False
         self._ea = None
         self._st = None
         
@@ -40,31 +41,40 @@ class TimedMessageDispatcher:
         self.t0 = time()
         self._ea = asyncio.ensure_future(self.enqueue_arms())
         self._st = asyncio.ensure_future(self.send_triggers())
-        self.logger.info('Trigger/Arm loops started.')
+        self.logger.info('Timed message dispatcher started.')
+        self._running = True
         
     def stop(self):
         if self._ea is not None:
             self._ea.cancel()
         if self._st is not None:
             self._st.cancel()
+        self.logger.info('Timed message dispatcher stopped.')
+            
+    def is_running(self):
+        if (self._ea is None) or (self._st is None):
+            return False
+        return not (self._ea.done() and self._st.done())
         
     async def enqueue_arms(self):
-        async with self.mqtt_client as client:
-            async with client.filtered_messages('music/commands') as messages:
-                await client.subscribe('music/commands')
-                async for message in messages:
-                    if 'WaitForMusic' in message.payload.decode():
-                        try:
-                            msg = json.loads(message.payload.decode())
-                            step_name = msg['WaitForMusic']
-                            
-                        except Exception as err:
-                            self.logger.error('Failed to interpret arming payload: %s', message.payload)
-                            step_name = f'MALFORMED MESSAGE'
-                            
-                        self.arm_q.append(step_name if step_name else 'unlabeled')
-                        waiting_for = step_name if step_name else 'unlabeled'
-                        self.logger.info('Waiting in:', waiting_for)
+        client = self.mqtt_client
+        async with client.filtered_messages('music/commands') as messages:
+            await client.subscribe('music/commands')
+            async for message in messages:
+                if 'WaitForMusic' in message.payload.decode():
+                    try:
+                        msg = json.loads(message.payload.decode())
+                        step_name = msg['WaitForMusic']
+                        
+                    except Exception as err:
+                        self.logger.error('Failed to interpret arming payload: %s', message.payload)
+                        step_name = f'MALFORMED MESSAGE'
+                        
+                    self.arm_q.append(step_name if step_name else 'unlabeled')
+                    self.logger.info('Received WaitForMusic: %s, Arm Q has %s entries now.', step_name, len(self.arm_q))
+                
+                if 'Play' in message.payload.decode():
+                    self.logger.warning('Received play message: %s', message.payload)
                     
     async def send_triggers(self):
         
@@ -75,7 +85,7 @@ class TimedMessageDispatcher:
             while self.trigger_q and self.arm_q:
                 com_trig = self.trigger_q.popleft()
                 com_arm = self.arm_q.popleft()
-                self.logger.warning('Immediately answering %s due to waiting trigger %s', ela, com_arm, com_trig)
+                self.logger.warning('(%.1f) Immediately answering %s due to deferred trigger %s', ela, com_arm, com_trig)
                 asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps({'action': 'Trigger'})))
                 await asyncio.sleep(0.05)
             
@@ -116,36 +126,33 @@ class TimedMessageDispatcher:
                     
                 else:
                     self.logger.warning('(%.1f) Passed label %s without sending anythng.', ela, event["comment"])
-                    
-                if not event["trigger"]:
-                    self.logger.info('(%.1f) Passed event %s without trigger.', ela, event["comment"])
-                    
+
             await asyncio.sleep(1)
 
 async def main():
     import asyncio_mqtt as mqtt
     from putzini_config import PutziniConfig
     config = PutziniConfig()
-    client = mqtt.Client(config.mqtt_broker)
-    timing = TimedMessageDispatcher(client)
-    
-    with open(argv[1], newline='') as fh:
-        reader = csv.DictReader(fh, delimiter='\t', fieldnames=['start', 'end', 'text'])
-        lbls = []
-        for row in reader:
-            stp = {}
-            stp['time'] = float(row['start'])
-            txt = row['text'].split(',')
-            stp['comment'] = txt[0]
-            stp['speed'] = int(txt[1]) if txt[1] else None
-            stp['trigger'] = txt[2].strip() == 'T'
-            lbls.append(stp)
-            
-    logger.info('Have label list with %s entries', len(lbls))
-    timing.label_list = lbls
-    timing.start()
-    while True:
-        await asyncio.sleep(1)
+    async with mqtt.Client(config.mqtt_broker) as client:
+        timing = TimedMessageDispatcher(client)
+        
+        with open(argv[1], newline='') as fh:
+            reader = csv.DictReader(fh, delimiter='\t', fieldnames=['start', 'end', 'text'])
+            lbls = []
+            for row in reader:
+                stp = {}
+                stp['time'] = float(row['start'])
+                txt = row['text'].split(',')
+                stp['comment'] = txt[0]
+                stp['speed'] = int(txt[1]) if txt[1] else None
+                stp['trigger'] = txt[2].strip() == 'T'
+                lbls.append(stp)
+                
+        logger.info('Have label list with %s entries', len(lbls))
+        timing.label_list = lbls
+        timing.start()
+        while True:
+            await asyncio.sleep(1)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
