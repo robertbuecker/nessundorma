@@ -40,12 +40,13 @@ class MusicPlayer:
                 if 'stop' in message.payload.decode():
                     try:
                         msg = json.loads(message.payload.decode())['stop']
-                        if (not isinstance(msg, dict)) or ('file' not in msg):
-                            self.logger.info('Stopping all playing files.')
-                            self.stop_all()
-                            
-                        else:
-                            self.stop(os.path.join(msg["folder"] if 'folder' in msg else '.', msg["file"]))
+                        if msg is not None:
+                            if (not isinstance(msg, dict)) or ('file' not in msg):
+                                self.logger.info('Stopping all playing files.')
+                                self.stop_all()
+                                
+                            else:
+                                self.stop(os.path.join(msg["folder"] if 'folder' in msg else '.', msg["file"]))
                             
                     except Exception as err:
                         self.logger.exception('Failed to interpret stop payload: %s', message.payload)
@@ -54,20 +55,19 @@ class MusicPlayer:
                 if 'play' in message.payload.decode():
                     try:
                         msg = json.loads(message.payload.decode())['play']
-                        file_name = msg['file'] if 'file' in msg else None
-                        folder_name = msg['folder'] if 'folder' in msg else '.'
-                        loop = bool(int(msg['loop'])) if 'loop' in msg else False
-                        labels = msg['labels'] if 'labels' in msg else None
-                        
-                    except Exception as err:
-                        self.logger.exception('Failed to interpret play payload: %s', message.payload)
-                        
-                    try:
-                        new_track = PutziniTrack(wave_file=None if file_name is None else os.path.join(folder_name, file_name), 
-                                                 label_file=None if labels is None else os.path.join(folder_name, labels), 
-                                                 mqtt_client=self.mqtt_client)
-                        self.tracks.append(new_track)
-                        asyncio.ensure_future(new_track.play(loop=loop))
+                        if msg is not None:
+                            file_name = msg['file'] if 'file' in msg else None
+                            folder_name = msg['folder'] if 'folder' in msg else '.'
+                            loop = bool(int(msg['loop'])) if 'loop' in msg else False
+                            labels = msg['labels'] if 'labels' in msg else None
+                            vol = float(msg['vol']) if 'vol' in msg else 100.
+                            start = float(msg['start']) if 'start' in msg else 0.
+                            new_track = PutziniTrack(wave_file=None if file_name is None else os.path.join(folder_name, file_name), 
+                                                    label_file=None if labels is None else os.path.join(folder_name, labels), 
+                                                    start_time = start, volume=vol,
+                                                    mqtt_client=self.mqtt_client)
+                            self.tracks.append(new_track)
+                            asyncio.ensure_future(new_track.play(loop=loop))
                         
                     except:
                         self.logger.exception('Failed to initialize playing track %s', file_name)
@@ -93,12 +93,11 @@ class MusicPlayer:
         self.logger.info('Trying to stop file %s', filename)
         for t in self.playing_tracks:
             if t.wave_file == filename:
-                print(t.wave_file)
                 t.stop()
                 break
                 
         else:
-            self.logger.warn('Cannot stop track with filename %s: not found or playing.', t.wave_file)
+            self.logger.warn('Cannot stop track with filename %s: not found or playing.', filename)
 
 
 ## FROM HERE: ACTUAL SINGING
@@ -112,7 +111,7 @@ async def main():
             await asyncio.sleep(1)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
     loop.run_until_complete(main())

@@ -10,6 +10,7 @@ from collections import deque, defaultdict
 from time import time
 from sys import argv
 import csv
+from typing import Optional
 
 import logging
 
@@ -77,8 +78,8 @@ class TimedMessageDispatcher:
                     self.logger.warning('Received play message: %s', message.payload)
                     
     async def send_triggers(self):
-        
-        self.logger.debug('Trigger loop started.')
+                
+        self.logger.debug('Starting trigger loop with %s labels.')
         
         while len(self.label_list) > 0:
             
@@ -125,7 +126,7 @@ class TimedMessageDispatcher:
                     asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
                     
                 else:
-                    self.logger.warning('(%.1f) Passed label %s without sending anythng.', ela, event["comment"])
+                    self.logger.info('(%.1f) Passed label %s without sending anything.', ela, event["comment"])
 
             await asyncio.sleep(1)
 
