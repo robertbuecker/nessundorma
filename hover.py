@@ -65,6 +65,8 @@ class Putzini:
         self.putz_per_meter = 17241*0.9
 
         self.command_state = {}
+        
+
 
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
@@ -72,6 +74,11 @@ class Putzini:
         l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
         c = asyncio.ensure_future(self.cam.start())
+        
+        self.mqtt_logging_handler = PutziniMqttLoggingHandler(self.mqtt_client, "putzini/logs")
+        self.mqtt_logging_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s: %(message)s'))
+        logging.getLogger('').addHandler(self.mqtt_logging_handler)
+        logging.error("Registered Handler")
           
         await asyncio.gather(d, n, l, m, c)
         # await asyncio.gather(d, n, m)
@@ -378,6 +385,11 @@ async def parse_json_commands(messages, putzini: Putzini):
 
             if "move" in cmd and cmd["move"] != None:
                 logger.info('parse_json_commands: Executing drive task: %s', cmd["move"])
+                if cmd["move"].startswith("handOver"):
+                    move_task.cancel()
+                    putzini.drive.stop()
+                    logging.info("handing control over to Operator")
+                    putzini.state.set_error("handing control over to Operator")
                 if cmd["move"] == "stop()":
                     move_task.cancel()
                     putzini.drive.stop()
@@ -467,6 +479,7 @@ async def parse_json_commands(messages, putzini: Putzini):
 async def main():
 
     client = mqtt.Client("172.31.1.150")
+    
     putzini = Putzini(client)
 
     async def move_without_limits(*args, **kwargs):
@@ -577,10 +590,9 @@ async def main():
 
         await asyncio.gather(*tasks)
             
-if __name__ == '__main__':
-    mqttHandler = PutziniMqttLoggingHandler("172.31.1.150", "putzini/logs")
+if __name__ == '__main__':    
     logging.basicConfig(level=logging.INFO)
-    logging.getLogger('').addHandler(mqttHandler)
+
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
     loop.run_until_complete(main())
