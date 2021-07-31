@@ -1,0 +1,10 @@
+0.000000	0.000000	BewegungnahamKoerper,,T  
+33.204729	33.204729	FarbeholendannRandomDraw,,T
+93.251879	93.251879	RandomMove,,T
+152.405628	152.405628	RandomDrawundMoveabwechseln,,T
+183.735931	183.735931	LiebesBlick,,T
+200.923072	200.923072	Siewollenzueinander,,T
+211.905203	211.905203	AbbruchPutzini,,T
+236.365403	236.365403	Arieaussingen,,
+332.175945	332.175945	PutziniDeath,,T
+369.359819	369.359819	Stop,,T
