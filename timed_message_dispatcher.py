@@ -27,6 +27,8 @@ class TimedMessageDispatcher:
         self.trigger_q = deque([])
         self.label_list = defaultdict
         self.t0 = 0.
+        self._ea = None
+        self._st = None
         
     def add_arm_message(self, topic, payload: Optional[str] = None, json_key: Optional[str] = None):
         self._arm_messages.append({topic: (payload, json_key)})
@@ -34,11 +36,17 @@ class TimedMessageDispatcher:
     def add_trigger_message(self, topic, payload: Optional[str] = None, json_keys: Optional[Union[list, tuple]] = (), send: bool = True):
         self._trigger_messages.append({topic: (payload, json_keys, send)})
         
-    async def start(self):
+    def start(self):
         self.t0 = time()
-        asyncio.ensure_future(self.enqueue_arms())
-        asyncio.ensure_future(self.send_triggers())
+        self._ea = asyncio.ensure_future(self.enqueue_arms())
+        self._st = asyncio.ensure_future(self.send_triggers())
         self.logger.info('Trigger/Arm loops started.')
+        
+    def stop(self):
+        if self._ea is not None:
+            self._ea.cancel()
+        if self._st is not None:
+            self._st.cancel()
         
     async def enqueue_arms(self):
         async with self.mqtt_client as client:
@@ -73,7 +81,7 @@ class TimedMessageDispatcher:
             
             # this is SO tedious without pandas...
             ela = time() - self.t0
-            self.logger.debug('(%.1f) Next label is %s.', ela, self.label_list[0])
+            # self.logger.debug('(%.1f) Next label is %s.', ela, self.label_list[0])
             
             passed = [lbl for lbl in self.label_list if lbl['time'] <= ela]
             self.label_list = [lbl for lbl in self.label_list if lbl['time'] > ela]
@@ -95,7 +103,7 @@ class TimedMessageDispatcher:
                 elif event["trigger"]:
                     # we don't have an awaited trigger?!
                     self.trigger_q.append(event["comment"])
-                    self.logger.warning('(%.1f) Trigger %s requested while not awaiting one. Trigger Q now has %s entries', 
+                    self.logger.warning('(%.1f) Trigger %s requested while not awaiting one. Trigger Q now has %s entries.', 
                                         ela, event["comment"], len(self.trigger_q))
                     
                 if ("speed" in event) and (event["speed"] is not None) and (event["speed"] > -1):
@@ -107,7 +115,7 @@ class TimedMessageDispatcher:
                     asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
                     
                 else:
-                    self.logger.warning('(%.1f) Passed label %s without action %s', ela, event["comment"])
+                    self.logger.warning('(%.1f) Passed label %s without sending anythng.', ela, event["comment"])
                     
                 if not event["trigger"]:
                     self.logger.info('(%.1f) Passed event %s without trigger.', ela, event["comment"])
@@ -135,7 +143,7 @@ async def main():
             
     logger.info('Have label list with %s entries', len(lbls))
     timing.label_list = lbls
-    await timing.start()
+    timing.start()
     while True:
         await asyncio.sleep(1)
 
