@@ -38,7 +38,7 @@ class PutziniState:
                 self.set_error(str(err))
                 return
             except Exception as err:
-                self.logger.error('Weird error during task %s: %s', err)
+                self.logger.error('Weird error during task %s: %s', move_task, err)
         elif move_task is None:
             self.logger.warning('Received set_idle without task. Probably a manual stop().')
 

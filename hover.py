@@ -159,6 +159,13 @@ class Putzini:
         accuracy = int(accuracy) / 100
         target = np.array([x,y])
         ii = 0
+        a = None
+
+        segment_length = 1.
+        max_segments = 10
+
+        fudge = 1
+
         while True: 
             start = self.nav.get_position()
             end = np.array([x,y])
@@ -176,26 +183,47 @@ class Putzini:
 
             diff = end-start
             distance = np.linalg.norm(diff)
-            
+
             if distance < accuracy:
                 self.logger.info(f"move_abs: goal {target.round(3)*100} reached within {accuracy*100} cm.")
                 break
-            
+
+            self.logger.info('Remaining distance: %.2f m', distance)
+            if distance < .5:
+                _speed = min(60, speed) if speed >=0 else max(-60, speed)
+            elif distance < 1.:
+                _speed = min(80, speed) if speed >=0 else max(-60, speed)
+            elif distance < 2.:
+                _speed = min(100, speed) if speed >=0 else max(-80, speed)
+            else:
+                _speed = speed
+
+            prev_a = a
+
             a = math.atan2(diff[1], diff[0])/math.pi*180
-            if speed < 0:
+            if _speed < 0:
                 a += 180
             
-            self.logger.info(f"move_abs: segment {ii:02d}: {start.round(3)*100} to {end.round(3)*100}: {a:.1f}°, {distance*100:.1f} cm.")
-            await self.turn_absolute(a, np.abs(speed), accuracy=max(3,10*min(distance,1)))
+            if prev_a is not None:
+                d_a = ((prev_a - a) + 180) % 360 - 180
+                if abs(d_a) > 60:
+                    fudge = max(0.8*fudge, 0.2)
+
+            self.logger.info(f"move_abs: segment {ii:02d}: {start.round(3)*100} to {end.round(3)*100}: {a:.1f}°, {distance*100:.1f} cm. Speed {_speed}. Fudge {fudge:.2f}.")
+            await self.turn_absolute(a, min(np.abs(_speed),80), accuracy=max(5,10*min(distance,1.)))
             
             if distance > 1:
                 self.nav.tell_straight_move_start()
-            self.drive.move(min(distance,1)*self.putz_per_meter, -speed)
+
+            self.drive.move(min(distance, segment_length)*self.putz_per_meter*fudge, -_speed)
             
             await self.drive.finished
             self.nav.tell_straight_move_done()
 
-            ii += 1
+            if ii >= max_segments:
+                raise PathForbiddenError(message=f'Failed to reach goal of move_absolute after {max_segments} segments.', current_pos=start, target_pos=target)
+            else:
+                ii += 1
 
     async def move_relative(self, x, y, speed=60, accuracy=10):
         x = int(x)/100
