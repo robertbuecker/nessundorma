@@ -13,12 +13,13 @@ import csv
 import asyncio_mqtt as mqtt
 from putzini_config import PutziniConfig
 import logging
+from scipy.io import wavfile
 
 # logger = logging.getLogger(__name__)
 
 class PutziniTrack:
     
-    def __init__(self, wave_file=None, label_file=None, mqtt_client=None):
+    def __init__(self, wave_file=None, label_file=None, start_time=0., volume=100., mqtt_client=None):
 
         self.name = ','.join([fn for fn in [wave_file, label_file] if fn is not None])
 
@@ -31,16 +32,12 @@ class PutziniTrack:
         self.label_file = label_file
         self.mqtt_client = mqtt_client
         
-        
         self.wave = None
         self.timing = None
+        self.start_time = start_time
         self._loop = False
         self.playback = sa.PlayObject(0)
-        
-        
-        if wave_file is not None:
-            self.wave = sa.WaveObject.from_wave_file(wave_file)
-        
+                
         if (label_file is not None) and (self.mqtt_client is not None):
             self.timing = TimedMessageDispatcher(self.mqtt_client)
             with open(self.label_file, newline='') as fh:
@@ -54,9 +51,18 @@ class PutziniTrack:
                     stp['speed'] = int(txt[1]) if txt[1] else None
                     stp['trigger'] = txt[2].strip() == 'T'
                     lbls.append(stp) 
-            
+                            
+            lbls = [lbl for lbl in lbls if lbl['time'] >= self.start_time]
             self.logger.info('Have label list with %s entries', len(lbls))
             self.timing.label_list = lbls
+        
+        if wave_file is not None:
+            if (volume == 100.) and (self.start_time == 0.):
+                self.wave = sa.WaveObject.from_wave_file(wave_file)
+            else:
+                sr, waveform = wavfile.read(wave_file)
+                waveform = (volume/100*waveform[int(sr*start_time):,:]).astype(np.int16)
+                self.wave = sa.WaveObject(waveform, sample_rate=sr)
     
     async def play(self, loop=False):
         # this is quasi-blocking!
@@ -89,7 +95,11 @@ async def main():
     from putzini_config import PutziniConfig
     config = PutziniConfig()
     async with mqtt.Client(config.mqtt_broker) as client:
-        opera = PutziniTrack(argv[1] if len(argv) >= 2 else 'opera.wav', argv[1] if len(argv) >= 3 else 'opera.txt', client)
+        opera = PutziniTrack(argv[1] if len(argv) >= 2 else 'opera.wav', 
+                             argv[1] if len(argv) >= 3 else 'opera.txt', 
+                             start_time=120,
+                             volume=80,
+                             mqtt_client=client)
         if False:
             await opera.play()
         else:

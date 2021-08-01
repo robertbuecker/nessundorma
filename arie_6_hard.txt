@@ -1,4 +1,4 @@
-0.000000	0.000000	BewegungnahamKoerper,,T  
+0.000000	0.000000	BewegungnahamKoerper,,
 33.204729	33.204729	FarbeholendannRandomDraw,,T
 93.251879	93.251879	RandomMove,,T
 152.405628	152.405628	RandomDrawundMoveabwechseln,,T
