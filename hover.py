@@ -170,7 +170,7 @@ class Putzini:
                 if evade and not self.keepout.is_point_forbidden(end[0], end[1]):
                     self.logger.warning(f'move_abs: Direct move from {start*100} to {end*100} cm is forbidden. Attempting to go via waypoints.')
                     #TODO better logic about circle direction
-                    await self.move_circle(speed=speed, stride=1, exit_x=x*100, exit_y=y*100)
+                    await self.move_circle(speed=speed, stride=0, exit_x=x*100, exit_y=y*100)
                 else:
                     raise err
 
@@ -232,6 +232,15 @@ class Putzini:
         distances = ((self.nav.get_position().reshape(1,2) - waypoints)**2).sum(axis=1)**.5
         cur_step = np.argmin(distances)
         self.logger.info(f'move_circle: starting with {N_steps} waypoints. Distances are {distances.round(3)*100} cm; closest point is {cur_step}')
+        if (stride == 0) and (exit_x is None):
+            stride = 2 * random.randint(0,1) - 1 # random direction (-1 or 1)
+        elif stride == 0:
+            exit_distances = ((np.array([exit_x, exit_y]).reshape(1,2)/100. - waypoints)**2).sum(axis=1)**.5
+            if exit_distances[((cur_step + 1) // N_steps)] < exit_distances[((cur_step - 1) // N_steps)]:
+                stride = 1
+            else:
+                stride = -1
+            self.logger.info('Starting evasion circle %s', 'clockwise' if stride == -1 else 'counter-clockwise')
         while True:
             self.logger.info(f'move_circle: to circle step {cur_step} at {waypoints[cur_step,:]}')
             await self.move_absolute(100*waypoints[cur_step, 0], 100*waypoints[cur_step, 1], 
