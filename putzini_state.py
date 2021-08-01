@@ -50,7 +50,7 @@ class PutziniState:
         self.action = 'Error'
         self.message = message
         # TODO to state the obvious...
-        # self.logger.critical('Putzini set to error state!')
+        self.logger.critical('Putzini set to error state!')
         self.publish()        
         
     def set_position_with_alpha(self, pos, alpha):

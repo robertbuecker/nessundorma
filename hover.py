@@ -390,7 +390,8 @@ async def parse_json_commands(messages, putzini: Putzini):
                     putzini.drive.stop()
                     logging.info("handing control over to Operator")
                     putzini.state.set_error("handing control over to Operator")
-                if cmd["move"] == "stop()":
+                    move_task = asyncio.Future()
+                elif cmd["move"] == "stop()":
                     move_task.cancel()
                     putzini.drive.stop()
                     putzini.state.set_idle()
