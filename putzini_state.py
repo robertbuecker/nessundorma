@@ -38,7 +38,7 @@ class PutziniState:
                 self.set_error(str(err))
                 return
             except Exception as err:
-                self.logger.error('Weird error during task %s: %s', err)
+                self.logger.error('Weird error during task %s: %s', move_task, err)
         elif move_task is None:
             self.logger.warning('Received set_idle without task. Probably a manual stop().')
 
@@ -50,7 +50,7 @@ class PutziniState:
         self.action = 'Error'
         self.message = message
         # TODO to state the obvious...
-        # self.logger.critical('Putzini set to error state!')
+        self.logger.critical('Putzini set to error state!')
         self.publish()        
         
     def set_position_with_alpha(self, pos, alpha):

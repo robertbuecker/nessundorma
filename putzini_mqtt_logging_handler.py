@@ -1,50 +1,57 @@
 """JUST AN EXAMPLE"""
 
 import logging
-import paho.mqtt.publish as publish
-
+import yaml
+import asyncio
+import asyncio_mqtt
 
 class PutziniMqttLoggingHandler(logging.Handler):
     """
         A handler class which writes logging records, appropriately formatted,
         to a MQTT server to a topic.
         """
-    def __init__(self, hostname, topic, qos=0, retain=False,
-                       port=1883, client_id='', keepalive=60, will=None, auth=None,
-                       tls=None, transport='tcp'):
+    def __init__(self, mqtt_client, topic):
         logging.Handler.__init__(self)
+        self.mqtt_client = mqtt_client
         self.topic = topic
-        self.qos = qos
-        self.retain = retain
-        self.hostname = hostname
-        self.port = port
-        self.client_id = client_id
-        self.keepalive = keepalive
-        self.will = will
-        self.auth = auth
-        self.tls = tls
-        self.transport = transport
+        self.story_step = "StoryStep"
+        #asyncio.ensure_future(self._story_step_listener)
+   
+    #async def _story_step_listener():
+    #    async with client.filtered_messages("simulation/state") as messages:
+    #        await client.subscribe("simulation/state")
+    #        async for message in messages:
+    #            msg = json.loads(message.payload.decode("utf-8"))
+    #            self.story_step = msg["current step"]
 
     def emit(self, record):
         """
                 Publish a single formatted logging record to a broker, then disconnect
                 cleanly.
                 """
+        record.story_step = self.story_step
         msg = self.format(record)
-        publish.single(self.topic, msg, self.qos, self.retain,
-                       hostname=self.hostname, port=self.port,
-                       client_id=self.client_id, keepalive=self.keepalive,
-                       will=self.will, auth=self.auth, tls=self.tls, transport=self.transport)
+        asyncio.ensure_future(self.mqtt_client.publish(self.topic, msg)) 
+
+async def main():
+    topic = 'putzini/logs'
+    async with asyncio_mqtt.Client("172.31.1.150") as client:
+        await client.publish("putzini/logs", "hallo")
+
+        # Create and configure a logger instance
+        logger = logging.getLogger('')
+        myHandler = PutziniMqttLoggingHandler(client, topic)
+        myHandler.setLevel(logging.INFO)
+        myHandler.setFormatter(logging.Formatter('%(story_step)s - %(levelname)s: %(message)s'))
+        logger.addHandler(myHandler)
+        
+        logging.info("test lalala info")
+        logging.error("test lalala info")
+        await asyncio.sleep(10)
 
 
 
 if __name__ == '__main__':        
-    hostname = '172.31.1.150'
-    topic = 'putzini/logs'
-            
-    # Create and configure a logger instance
-    logger = logging.getLogger('')
-    myHandler = PutziniMqttLoggingHandler(hostname, topic)
-    myHandler.setLevel(logging.INFO)
-    myHandler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s: %(message)s'))
-    logger.addHandler(myHandler)
+    loop = asyncio.get_event_loop()
+    loop.set_debug(True)
+    loop.run_until_complete(main())
