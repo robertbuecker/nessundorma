@@ -21,6 +21,7 @@ async def listen_for_beamer(mqtt_client):
     async with mqtt_client as client:
         async with client.filtered_messages('beamer') as messages:
             await client.subscribe('beamer')
+            logger.info('Started listening.')
             async for message in messages:
                 text = json.loads(message.payload.decode())
                 if 'Regie' in text and (text["Regie"] is not None):

@@ -35,7 +35,7 @@ class MusicPlayer:
         async with client.filtered_messages('player/commands') as messages:
             await client.subscribe('player/commands')
             async for message in messages:
-                self.logger.debug('Received message (%s) %s: %s', message.timestamp, message.topic, message.payload)
+                self.logger.debug('Received message (%.1f) %s: %s', message.timestamp, message.topic, message.payload)
                 
                 if 'stop' in message.payload.decode():
                     try:
@@ -69,6 +69,10 @@ class MusicPlayer:
                             self.tracks.append(new_track)
                             asyncio.ensure_future(new_track.play(loop=loop))
                         
+                    except json.decoder.JSONDecodeError:
+                        self.logger.exception('Failed to decode payload %s', message.payload)
+                    except FileNotFoundError:
+                        self.logger.exception('File not found: %s', file_name)
                     except:
                         self.logger.exception('Failed to initialize playing track %s', file_name)
                         
@@ -91,13 +95,14 @@ class MusicPlayer:
             
     def stop(self, filename):
         self.logger.info('Trying to stop file %s', filename)
+        found = False
         for t in self.playing_tracks:
             if t.wave_file == filename:
                 t.stop()
-                break
+                found = True
                 
-        else:
-            self.logger.warn('Cannot stop track with filename %s: not found or playing.', filename)
+        if not found:
+            self.logger.warning('Cannot stop track with filename %s: not found or playing.', filename)
 
 
 ## FROM HERE: ACTUAL SINGING
@@ -111,7 +116,7 @@ async def main():
             await asyncio.sleep(1)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
     loop.run_until_complete(main())

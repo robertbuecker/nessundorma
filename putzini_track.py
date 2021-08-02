@@ -2,7 +2,7 @@
 
 import asyncio_mqtt as mqtt
 import simpleaudio as sa
-import time
+from time import time
 import json
 import numpy as np
 from sys import argv
@@ -53,16 +53,21 @@ class PutziniTrack:
                     lbls.append(stp) 
                             
             lbls = [lbl for lbl in lbls if lbl['time'] >= self.start_time]
-            self.logger.info('Have label list with %s entries', len(lbls))
-            self.timing.label_list = lbls
+            # self.logger.info('Have label list with %s entries', len(lbls))
+            self.timing.set_label_list(lbls)
         
         if wave_file is not None:
+            t0 = time()
             if (volume == 100.) and (self.start_time == 0.):
                 self.wave = sa.WaveObject.from_wave_file(wave_file)
             else:
+                self.logger.info('Loading wave file %s explicitly into array...', wave_file)
                 sr, waveform = wavfile.read(wave_file)
+                self.logger.info('Wave file has %.1f seconds (%.2f minutes) at %s Hz sample rate', 
+                                 waveform.shape[0]/sr, waveform.shape[0]/sr/60, sr)
                 waveform = (volume/100*waveform[int(sr*start_time):,:]).astype(np.int16)
                 self.wave = sa.WaveObject(waveform, sample_rate=sr)
+            self.logger.info('Loading wave file %s took %.1f seconds.', wave_file, time()-t0)
     
     async def play(self, loop=False):
         # this is quasi-blocking!
