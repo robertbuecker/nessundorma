@@ -142,7 +142,7 @@ class TimedMessageDispatcher:
             await asyncio.sleep(0.05)
             
             if not self.label_list:
-                self.logger.info('(%.1f) Passed last label in list', self.ela)
+               self.logger.debug('(%.1f) Passed last label in list', self.ela)
 
 async def main():
     import asyncio_mqtt as mqtt
