@@ -9,7 +9,7 @@ bno055_calib:
   off_mag: !!python/tuple [739, 492, 6]
   rad_acc: 1000
   rad_mag: 728
-keepout_img: fsp.tiff
+keepout_img: xpon.tiff
 minimum_calib_level: 0
 nav_avg_len: 50
 nav_update_rate: 20

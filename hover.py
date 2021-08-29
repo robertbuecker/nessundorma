@@ -52,7 +52,8 @@ class Putzini:
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
         self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
-        self.cam = PutziniCam(mqtt_client)
+        # self.cam = PutziniCam(mqtt_client)
+        self.cam = None
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout, self.cam)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()
@@ -73,15 +74,18 @@ class Putzini:
         n = asyncio.ensure_future(self.nav.connect())
         l = asyncio.ensure_future(self.lamp.connect())
         m = asyncio.ensure_future(self.neck.connect())
-        c = asyncio.ensure_future(self.cam.start())
+        if self.cam is not None:
+            c = asyncio.ensure_future(self.cam.start())
         
         self.mqtt_logging_handler = PutziniMqttLoggingHandler(self.mqtt_client, "putzini/logs")
         self.mqtt_logging_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s: %(message)s'))
         logging.getLogger('').addHandler(self.mqtt_logging_handler)
         logging.error("Registered Handler")
           
-        await asyncio.gather(d, n, l, m, c)
-        # await asyncio.gather(d, n, m)
+        if self.cam is not None:
+            await asyncio.gather(d, n, l, m, c)
+        else:
+            await asyncio.gather(d, n, m)
 
     async def update_command_state(self, new_commands: dict):
         self.command_state.update(new_commands)
@@ -90,7 +94,7 @@ class Putzini:
     async def turn_absolute(self, angle, speed=60, accuracy=4, slow_angle=30, speed_lim=25):
         angle = int(angle)
 
-        self.logger.info(f'Turn to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
+        self.logger.info(f'turn_absolute: to {angle} from {self.nav.get_angle()}, speed {speed}, acc. {accuracy}, slowdown below {slow_angle}')
         fudge = 1
         prev_a = 0
         close_to_target = False
@@ -110,7 +114,7 @@ class Putzini:
                 fudge = max(0.1,fudge*0.7)
             prev_a = a
 
-            self.logger.debug(f"{old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
+            self.logger.debug(f"turn_absolute: {old_angle:.2f} to {angle:.2f} => delta={a:.2f}; act spd=[{self.drive.meas_speed_r:.1f}, {self.drive.meas_speed_l:.1f}]; spd={speed}; fudge={fudge}")
 
             if abs(a) < slow_angle:
                 speed = min(speed,50)
@@ -149,7 +153,7 @@ class Putzini:
         if speed < 0:
             a += 180
         
-        self.logger.info(f"Look from {start.round(3)*100} at {end.round(3)*100}: turn to {a}°")
+        self.logger.info(f"look_at: from {start.round(3)*100} at {end.round(3)*100}: turn to {a}°")
         await self.turn_absolute(a, np.abs(speed), accuracy=accuracy)
 
     async def move_absolute(self, x, y=0, speed=60, accuracy=10, evade=True):
@@ -159,7 +163,6 @@ class Putzini:
         accuracy = int(accuracy) / 100
         target = np.array([x,y])
         ii = 0
-        a = None
 
         segment_length = 1.
         max_segments = 10
@@ -188,7 +191,7 @@ class Putzini:
                 self.logger.info(f"move_abs: goal {target.round(3)*100} reached within {accuracy*100} cm.")
                 break
 
-            self.logger.info('Remaining distance: %.2f m', distance)
+            self.logger.info('move_abs: remaining distance: %.2f m', distance)
             if distance < .5:
                 _speed = min(60, speed) if speed >=0 else max(-60, speed)
             elif distance < 1.:
@@ -198,16 +201,18 @@ class Putzini:
             else:
                 _speed = speed
 
-            prev_a = a
-
             a = math.atan2(diff[1], diff[0])/math.pi*180
             if _speed < 0:
                 a += 180
             
-            if prev_a is not None:
-                d_a = ((prev_a - a) + 180) % 360 - 180
-                if abs(d_a) > 60:
-                    fudge = max(0.8*fudge, 0.2)
+            curr_a = self.nav.get_angle()
+            d_a = ((curr_a - a) + 180) % 360 - 180
+            if abs(d_a) > 60:
+                # most likely an overshoot: fudge down.
+                fudge = max(0.8*fudge, 0.2)
+            if abs(d_a) > 90:
+                # experimental: revert
+                pass
 
             self.logger.info(f"move_abs: segment {ii:02d}: {start.round(3)*100} to {end.round(3)*100}: {a:.1f}°, {distance*100:.1f} cm. Speed {_speed}. Fudge {fudge:.2f}.")
             await self.turn_absolute(a, min(np.abs(_speed),80), accuracy=max(5,10*min(distance,1.)))
@@ -426,12 +431,14 @@ async def parse_json_commands(messages, putzini: Putzini):
                     move_task.cancel()
                     putzini.drive.stop()
                     logging.info("handing control over to Operator")
-                    putzini.state.set_error("handing control over to Operator")
+                    putzini.state.set_active()
+                    #putzini.state.set_error("handing control over to Operator")
                     move_task = asyncio.Future()
-                elif cmd["move"] == "stop()":
+                elif cmd["move"].startswith("stop"):
                     move_task.cancel()
                     putzini.drive.stop()
                     putzini.state.set_idle()
+                    move_task = asyncio.Future()
                 elif cmd["move"].startswith("moveToPos"):
                     pp = parse_command("moveToPos", 4, cmd["move"])
                     move_task.cancel()
