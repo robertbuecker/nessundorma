@@ -52,6 +52,10 @@ class MqttClient(QtCore.QObject):
     voltageSignal = QtCore.pyqtSignal(float)
     distancesSignal = QtCore.pyqtSignal(dict)
     calibratedSignal = QtCore.pyqtSignal(tuple)
+    stateSignal = QtCore.pyqtSignal(dict)
+    command_stateSignal = QtCore.pyqtSignal(dict)
+    logsSignal = QtCore.pyqtSignal(str)
+
     errorSignal = QtCore.pyqtSignal(PutziniError)
 
     def __init__(self, parent=None):
@@ -168,8 +172,17 @@ class MqttClient(QtCore.QObject):
         elif msg.topic == 'putzini/calibrated':
             calibrated = tuple(literal_eval(msg.payload.decode('utf-8')))
             self.calibratedSignal.emit(calibrated)
+        elif msg.topic == 'putzini/state':
+            state = json.loads(msg.payload.decode('utf-8'))
+            self.stateSignal.emit(state)
+        elif msg.topic == 'putzini/command_state':
+            command_state = json.loads(msg.payload.decode('utf-8'))
+            self.command_stateSignal.emit(command_state)
+        elif msg.topic == 'putzini/logs':
+            log_message = msg.payload.decode('utf-8')
+            self.logsSignal.emit(log_message)                                    
         else:
-            print(msg.topic, msg.payload)
+            # print(msg.topic, msg.payload)
             mstr = float(msg.payload.decode("utf-8"))
             self.voltageSignal.emit(mstr)
 
@@ -417,7 +430,10 @@ class MainWindow(QtGui.QWidget):
         self.client.distancesSignal.connect(self.on_distancesSignal)
         self.client.calibratedSignal.connect(self.on_calibratedSignal)
         self.client.errorSignal.connect(self.on_errorSignal)
-
+        self.client.command_stateSignal.connect(self.on_command_stateSignal)
+        self.client.stateSignal.connect(self.on_stateSignal)
+        self.client.logsSignal.connect(self.on_logsSignal)
+        
         self.client.hostname = "172.31.1.150"
         self.client.connectToHost()
         
@@ -446,6 +462,27 @@ class MainWindow(QtGui.QWidget):
             self.client.subscribe("putzini/error")
             self.client.subscribe("putzini/calibrated")
             self.client.subscribe("putzini/distances")
+            self.client.subscribe("putzini/command_state")
+            self.client.subscribe("putzini/state")
+            self.client.subscribe("putzini/logs")
+            
+
+    @QtCore.pyqtSlot(dict)
+    def on_stateSignal(self, state: dict):
+        # print('State', state)
+        if 'action' in state and state["action"].lower() == 'error':
+            print('WARNING: PUTZINI IS IN ERROR STATE')
+        # self.battery_indicator.setText(f'{voltage:.2f} V')
+
+    @QtCore.pyqtSlot(str)
+    def on_logsSignal(self, log_message: str):
+        print(log_message)
+        # self.battery_indicator.setText(f'{voltage:.2f} V')
+
+    @QtCore.pyqtSlot(dict)
+    def on_command_stateSignal(self, command_state: dict):
+        print('Command state', command_state)
+        # self.battery_indicator.setText(f'{voltage:.2f} V')
 
     @QtCore.pyqtSlot(float)
     def on_voltageSignal(self, voltage):
@@ -496,7 +533,7 @@ class MainWindow(QtGui.QWidget):
             d_T = np.inf if self.last_RT is None else sum((RT - self.last_RT)[:3,-1]**2)**.5
             self.last_RT = RT
             T = RT[:3,-1]
-            angles = (Rotation.from_dcm(RT[:3,:3]).as_euler('XYZ')*180/np.pi).round(1)
+            angles = (Rotation.from_matrix(RT[:3,:3]).as_euler('XYZ')*180/np.pi).round(1)
         
             self.xpos_indicator.setText(f'{T[0]*100:.0f} cm')
             self.ypos_indicator.setText(f'{T[1]*100:.0f} cm')

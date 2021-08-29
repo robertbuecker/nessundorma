@@ -22,15 +22,24 @@ import re
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
-# TODO consider replacing the pandas dependency by csv (but I'm too lazy)
-if argv[1].endswith('xlsx'):
-    df = pd.read_excel(argv[1]) 
-elif argv[1].endswith('csv'):
-    df = pd.read_csv(argv[1]) 
-elif 'docs.google.com' in argv[1]:
-    df = pd.read_csv(request.urlopen(argv[1] + '/export?gid=0&format=csv'))
-else:
-    raise ValueError('Input not recognized')
+dfs = []
+for tbl_name in argv[1:]:
+
+    # TODO consider replacing the pandas dependency by csv (but I'm too lazy)
+    if tbl_name.endswith('xlsx'):
+        df = pd.read_excel(tbl_name) 
+    elif tbl_name.endswith('csv'):
+        df = pd.read_csv(tbl_name) 
+    elif 'docs.google.com' in tbl_name:
+        url = tbl_name + '/export?gid=0&format=csv'
+        print('Getting table from:', url)
+        df = pd.read_csv(request.urlopen(url))
+    else:
+        raise ValueError('Input not recognized')
+    
+    dfs.append(df)
+    
+df = pd.concat(dfs, axis=0, ignore_index=True)
 
 def expand_nested(dict_in):
 

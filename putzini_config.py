@@ -33,7 +33,7 @@ class PutziniConfig:
         yaml.dump(opts, open('putzini.yaml', 'w'))
 
     def from_yaml(self):
-        opts = yaml.load(open('putzini.yaml', 'r'))
+        opts = yaml.load(open('putzini.yaml', 'r'), Loader=yaml.FullLoader)
         # print(opts)
         for k, v in opts.items():
             if hasattr(self, k):
