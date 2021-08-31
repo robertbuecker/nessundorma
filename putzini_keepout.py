@@ -107,21 +107,21 @@ class PutziniKeepoutArea:
         else:
             # going from forbidden to allowed - this is the tricky case. We need to check if path is passing though
             # a forbidden region
-            print('Cannot easily determine line viability... walking it explicitly...')
+            self.logger.info('is_line_forbidden: cannot easily determine line viability from (%.2f, %.2f) to (%.2f, %.2f) m. Walking explicitly.', x1, y1, x2, y2)
             ko_val = self.keepout_map[(y*self.fac+self.ref[0]).astype(int), (x*self.fac+self.ref[1]).astype(int)]
             went_low = False
             previous_forbidden = True
             for xp, yp, fv, kv in zip(x, y, lineval, ko_val):
                 if kv:
-                    print(f'...found keep-out on the way at {xp}, {yp}.')
+                    self.logger.info('is_line_forbidden: Found keep-out on the way at (%.2f, %.2f) m. Path is forbidden.', xp, yp)
                     return True
                 if not fv:
                     previous_forbidden = False
                 if fv and (not went_low) and previous_forbidden:
                     went_low = True
-                    print(f'Unforbidden at {xp}, {yp}')
+                    print('is_line_forbidden: During explicit walk -> unforbidden at (%.2f, %.2f) m', xp, yp)
                 if fv and went_low and (not previous_forbidden):
-                    print(f'Forbidden again at {xp}, {yp} -> path is forbidden!')
+                    print('is_line_forbidden: During explicit walk -> forbidden again at (%.2f, %.2f) m -> path is forbidden!', xp, yp)
                     return True
 
         return False

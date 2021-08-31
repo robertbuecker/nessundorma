@@ -21,6 +21,7 @@ class PutziniConfig:
         self.minimum_calib_level = 0
         self.max_distance = 700
         self.mqtt_broker = '172.31.1.150'
+        self.marker_map = 'markerset.yml'
         try:
             self.from_yaml()
         except FileNotFoundError:
@@ -33,7 +34,7 @@ class PutziniConfig:
         yaml.dump(opts, open('putzini.yaml', 'w'))
 
     def from_yaml(self):
-        opts = yaml.load(open('putzini.yaml', 'r'), Loader=yaml.FullLoader)
+        opts = yaml.load(open('putzini.yaml', 'r'))
         # print(opts)
         for k, v in opts.items():
             if hasattr(self, k):
