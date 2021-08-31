@@ -470,8 +470,16 @@ class MainWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(dict)
     def on_stateSignal(self, state: dict):
         # print('State', state)
-        if 'action' in state and state["action"].lower() == 'error':
-            print('WARNING: PUTZINI IS IN ERROR STATE')
+        if 'action' in state: 
+            if state["action"].lower() == 'error':
+                self.setWindowTitle('Putzini (ERROR ERROR ERROR ERROR)')
+            elif state["action"].lower() == 'moving':
+                self.setWindowTitle('Putzini (moving)')
+            elif state["action"].lower() == 'idle':
+                self.setWindowTitle('Putzini (idle)')
+            else:
+                self.setWindowTitle('Putzini (unknown move state)')
+                
         # self.battery_indicator.setText(f'{voltage:.2f} V')
 
     @QtCore.pyqtSlot(str)
