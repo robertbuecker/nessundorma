@@ -14,7 +14,8 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 class PutziniCam:
-    def __init__(self, mqtt_client):
+    def __init__(self, mqtt_client, putzini_config):
+        self.config = putzini_config
         self.logger = logger 
         self.mqtt_client = mqtt_client
         self.detected = 0
@@ -65,7 +66,7 @@ class PutziniCam:
 
     async def start(self):
         cmd = 'aruco_dcf_mm' if len(argv) > 1 and argv[1] == 'gui' else 'aruco_dcf_mm_nogui'
-        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0','markerset.yml','calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
+        self.proc = await asyncio.create_subprocess_exec(cmd,'live:0',self.config.marker_map,'calib_usbgs/usbgs.yml','-f ','arucoConfig.yml','-r','0', stdout=asyncio.subprocess.PIPE)
         asyncio.ensure_future(self._reader_task())
 
     async def _reader_task(self):

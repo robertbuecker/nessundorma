@@ -83,7 +83,7 @@ class PutziniNav2:
         self._alpha_buffer = [np.array([0., 0., 0.])]
         self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
         # self.position = self.anchor_pos.mean(axis=0)
-        self.position = np.array([-2., 2., 0.])
+        self.position = np.array([3, 0., 0.])
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
@@ -161,6 +161,7 @@ class PutziniNav2:
     async def start_ranging(self):
         await self.stop_ranging()
         self.writer.write(b'$PL,\r\n')
+        await asyncio.sleep(0.5)
         # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
         config_string = f'$PK,{self.tag},0,{len(self.anchors)},{",".join(self.anchors)},\r\n'
         config_string = config_string.encode('utf-8')
@@ -172,6 +173,7 @@ class PutziniNav2:
         
     async def stop_ranging(self):
         self.writer.write(b'$PG,')
+        await asyncio.sleep(0.5)
             
     async def update_position(self):
         
@@ -219,7 +221,7 @@ class PutziniNav2:
                     N_alpha_valid = 0
 
                 self._alpha_buffer = []            
-                self.logger.info('Angle from BNO055 is %s w.r.t. room CS.', self.alpha[0])
+                # self.logger.info('Angle from BNO055 is %s w.r.t. room CS.', self.alpha[0])
 
             else:
                 N_alpha_valid = 1

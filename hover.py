@@ -52,8 +52,8 @@ class Putzini:
         self.state = PutziniState(mqtt_client)
         self.drive = PutziniDrive(mqtt_client)
         self.keepout = PutziniKeepoutArea(mqtt_client, self.config, self.drive)
-        # self.cam = PutziniCam(mqtt_client)
-        self.cam = None
+        self.cam = PutziniCam(mqtt_client, self.config)
+        # self.cam = None
         self.nav = PutziniNav2(mqtt_client, self.state, self.config, self.keepout, self.cam)
         self.lamp = PutziniLamp()
         self.neck = PutziniNeckAndVacuum()

@@ -49,3 +49,18 @@ class PutziniNeckAndVacuum:
         self.aux = int(onoff)
         frame = struct.pack(">lBBB",0, self.speed, self.vacuum, self.aux)
         self.writer.write(frame)
+        
+        
+if __name__ == '__main__':
+    async def main():
+        pnv = PutziniNeckAndVacuum()
+        await pnv.connect()
+        await asyncio.sleep(10)
+        pnv.set_vacuum(1)
+        while True:
+            asyncio.sleep(10)
+    
+    loop = asyncio.get_event_loop()      
+    loop.set_debug(True)
+    loop.run_until_complete(main())
+    loop.close()
