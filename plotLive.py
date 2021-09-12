@@ -386,7 +386,7 @@ class MainWindow(QtGui.QWidget):
                 
         audio_loop = QtGui.QLineEdit('New Peeps/curious_1.wav')
         audio_loop.returnPressed.connect(lambda: self.command('audio', {'folder': audio_loop.text().rsplit('/', 1)[0], 
-                                                                     'file': audio_loop.text().rsplit('/', 1)[1], 'loop': 1, 'vol': int(self.audio_vol.value)}
+                                                                     'file': audio_loop.text().rsplit('/', 1)[1], 'loop': 1, 'vol': int(self.audio_vol.value())}
                                                               if audio_loop.text() else 'stop'))
         self.control_layout.addRow(QtGui.QLabel('Audio loop'), audio_loop)
                          
@@ -471,7 +471,7 @@ class MainWindow(QtGui.QWidget):
     def on_stateSignal(self, state: dict):
         # print('State', state)
         if 'action' in state: 
-            if state["action"].lower() == 'error':
+            if state["action"].lower() in ['error', 'errordontstop']:
                 self.setWindowTitle('Putzini (ERROR ERROR ERROR ERROR)')
             elif state["action"].lower() == 'moving':
                 self.setWindowTitle('Putzini (moving)')
