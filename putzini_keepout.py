@@ -119,9 +119,9 @@ class PutziniKeepoutArea:
                     previous_forbidden = False
                 if fv and (not went_low) and previous_forbidden:
                     went_low = True
-                    print('is_line_forbidden: During explicit walk -> unforbidden at (%.2f, %.2f) m', xp, yp)
+                    self.logger.info('is_line_forbidden: During explicit walk -> unforbidden at (%.2f, %.2f) m', xp, yp)
                 if fv and went_low and (not previous_forbidden):
-                    print('is_line_forbidden: During explicit walk -> forbidden again at (%.2f, %.2f) m -> path is forbidden!', xp, yp)
+                    self.logger.info('is_line_forbidden: During explicit walk -> forbidden again at (%.2f, %.2f) m -> path is forbidden!', xp, yp)
                     return True
 
         return False
