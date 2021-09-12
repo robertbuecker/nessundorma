@@ -71,6 +71,12 @@ The next step depends on whether Putzini is already running (see above) or you s
 
 ...using the graphical interface.
 
+Command to configure anchors:
+```
+$PD,
+$PK,B521,0,3,B4E7,B4D3,B4D9,
+```
+
 ##  ARKA hardware switch on
 
 - Drain water from compressor and switch it on
@@ -94,7 +100,7 @@ The next step depends on whether Putzini is already running (see above) or you s
 If not running, switch on the large MacBook Pro.
 
 If not already running, start the Unity software:
-- start unity hub, load project. It will likely crash with an error.
+- start unity hub, load project `ArkaTest19`. It will likely show an error about window layout. **DO NOT CHOOSE 'STANDARD LAYOUT'**. Instead, just quit.
 - repeat. Second time will work.
 - Click "Play" button on top center.
 - The ARKA user interface should appear now
