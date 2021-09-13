@@ -71,12 +71,27 @@ The next step depends on whether Putzini is already running (see above) or you s
 
 ...using the graphical interface.
 
-Command to configure anchors:
+## Putzini navigation bugfixing
+
+If you do not see three/four distance circles in the Putzini UI, something is wrong with the config of the navigation transmitters.
+Fix that by ssh-ing into Putzini, and then opening a serial terminal:
+```
+python3 -m serial.tools.minimterm /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 512000
+```
+
+Now copy-paste-return these commands if you are using 3 anchors (including the commas!):
+
 ```
 $PD,
 $PK,B521,0,3,B4E7,B4D3,B4D9,
 ```
 
+...and these if you are using 4:
+
+```
+$PD,
+$PK,B521,0,4,B4E7,B4D3,B4D9,
+```
 ##  ARKA hardware switch on
 
 - Drain water from compressor and switch it on
