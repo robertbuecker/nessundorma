@@ -47,7 +47,8 @@ class PutziniState:
         self.publish()
 
     def set_error(self, message=''):
-        self.action = 'Error'
+        # self.action = 'Error'
+        self.action = 'ErrorDontStop'
         self.message = message
         # TODO to state the obvious...
         self.logger.critical('Putzini set to error state!')

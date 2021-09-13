@@ -31,7 +31,10 @@ class PutziniMqttLoggingHandler(logging.Handler):
                 """
         record.story_step = self.story_step
         msg = self.format(record)
-        asyncio.ensure_future(self.mqtt_client.publish(self.topic, msg)) 
+        if not 'pending publish calls' in msg.lower():
+            asyncio.ensure_future(self.mqtt_client.publish(self.topic, msg)) 
+        else:
+            print('Blocked MQTT logging:', msg)
 
 async def main():
     topic = 'putzini/logs'
