@@ -76,14 +76,14 @@ The next step depends on whether Putzini is already running (see above) or you s
 If you do not see three/four distance circles in the Putzini UI, something is wrong with the config of the navigation transmitters.
 Fix that by ssh-ing into Putzini, and then opening a serial terminal:
 ```
-python3 -m serial.tools.minimterm /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 512000
+python3 -m serial.tools.miniterm /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 512000
 ```
 
 Now copy-paste-return these commands if you are using 3 anchors (including the commas!):
 
 ```
 $PD,
-$PK,B521,0,3,B4E7,B4D3,B4D9,
+$PK,B521,0,3,B4E7,B4D3,B4DE,
 ```
 
 ...and these if you are using 4:
@@ -139,7 +139,19 @@ If required (that is, if the show sequence on Google Docs has changed):
 
 ## Projector
 The Raspberry Pi should automatically switch on and be properly configured... mostly (see below).
-After a while, the screen should become black, and you should see the test messages that you can send from the ARKA computer.
+
+After a while, you should see the Desktop interface on the projection. 
+Connect to the Raspberry Pi using NoMachine.
+It is called `beamer-pi`.
+If you do not see it, seach also for its IP: `172.31.1.131`.
+You will see the desktop (as shown on the projector) mirrored on your screen.
+Now double-click the file `start_beamer.sh`on the Desktop and choose `Execute`.
+After a short bit the screen should go black.
+Then, **click on the black screen once**.
+Now, all is ready.
+You can check it in the Arka interface using the rightmost control tab ("clipboard" icon).
+
+<!-- After a while, the screen should become black, and you should see the test messages that you can send from the ARKA computer.
 
 ..._except_ it wll not play sound unless you do one mouse click.
-To do so, start `VNC Viewer` on the small MacBook, connect to the Raspberry Pi, and click once.
+To do so, start `VNC Viewer` on the small MacBook, connect to the Raspberry Pi, and click once. -->

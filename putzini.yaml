@@ -1,4 +1,4 @@
-anchor_names: !!python/tuple [B4D3, B4E7, B4D9]
+anchor_names: !!python/tuple [B4D3, B4E7, B4DE]
 anchor_x: !!python/tuple [230, 230, 425]
 # anchor_y: !!python/tuple [-170, 115, 56]
 anchor_y: !!python/tuple [-195, 133, 79]
