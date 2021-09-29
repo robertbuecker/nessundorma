@@ -14,6 +14,7 @@ class PutziniConfig:
         self.nav_update_rate = 20
         self.nav_avg_len = 10
         self.bno055_calib = None
+        self.use_bno055 = False
         self.room_rotation = 0
         self.cam_rotation = 0
         self.arka_radius = 100
