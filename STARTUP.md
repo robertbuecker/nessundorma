@@ -79,7 +79,7 @@ Fix that by ssh-ing into Putzini, and then opening a serial terminal:
 python3 -m serial.tools.miniterm /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 512000
 ```
 
-Now copy-paste-return these commands if you are using 3 anchors (including the commas!):
+Now copy-paste-return these commands if you are using 3 anchors (including the commas!). 
 
 ```
 $PD,
@@ -90,8 +90,11 @@ $PK,B521,0,3,B4E7,B4D3,B4DE,
 
 ```
 $PD,
-$PK,B521,0,4,B4E7,B4D3,B4D9,
+$PK,B521,0,4,B4E7,B4D3,B4D9,B4DE,
 ```
+Note that the pasted commands will **not** immediately be shown on the screen when pasted, but they should be returned ("echoed") after pressing enter.
+If not, or if the returned command does not match the one you sent, something is wrong.
+
 ##  ARKA hardware switch on
 
 - Drain water from compressor and switch it on
@@ -144,12 +147,16 @@ After a while, you should see the Desktop interface on the projection.
 Connect to the Raspberry Pi using NoMachine.
 It is called `beamer-pi`.
 If you do not see it, seach also for its IP: `172.31.1.131`.
+user: pi
+password: lovearka
+sound checkbox off (don't check!)
 You will see the desktop (as shown on the projector) mirrored on your screen.
 Now double-click the file `start_beamer.sh`on the Desktop and choose `Execute`.
 After a short bit the screen should go black.
+move the curor out of the screen pls
 Then, **click on the black screen once**.
 Now, all is ready.
-You can check it in the Arka interface using the rightmost control tab ("clipboard" icon).
+You can check it in the Arka interface using the rightmost control tab ("clipboard" icon), from where you can send test messages from the different actors.
 
 <!-- After a while, the screen should become black, and you should see the test messages that you can send from the ARKA computer.
 
