@@ -74,26 +74,19 @@ The next step depends on whether Putzini is already running (see above) or you s
 ## Putzini navigation bugfixing
 
 If you do not see three/four distance circles in the Putzini UI, something is wrong with the config of the navigation transmitters.
-Fix that by ssh-ing into Putzini, and then opening a serial terminal:
-```
-python3 -m serial.tools.miniterm /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 512000
-```
 
-Now copy-paste-return these commands if you are using 3 anchors (including the commas!). 
+As a first attempt of fixing, quit `hover.py` if it is still running (`Ctrl-C`), and (in the `nessundorma` folder), run `./putzini_nav.py`.
+This should fully re-configure the navigation transmitters or at least give some useful error messages.
 
-```
-$PD,
-$PK,B521,0,3,B4E7,B4D3,B4DE,
-```
+If that does not work, unplug all USB transmitters **including** the one on Putzini itself, wait for 3 minutes, replug them, and then run `./putzini_nav.py`.
 
-...and these if you are using 4:
+## Putzini shut-down
 
-```
-$PD,
-$PK,B521,0,4,B4E7,B4D3,B4D9,B4DE,
-```
-Note that the pasted commands will **not** immediately be shown on the screen when pasted, but they should be returned ("echoed") after pressing enter.
-If not, or if the returned command does not match the one you sent, something is wrong.
+For a graceful shutdown of Putzini, please do the following:
+- In the terminal running the Putzini software within `tmux` (green bar at the bottom), hit `Ctrl-C` to stop the Putzini code.
+- Run `putzini_nav.py` in the same window. This will shutdown the navigation system cleanly.
+- Run `sudo shutdown now`. It will ask for the password, which is `lovearka`.
+- Wait a minute, then switch Putzini off using the rocker switch (to down position) and the pusb button for the motor ("downwards" sound)
 
 ##  ARKA hardware switch on
 
