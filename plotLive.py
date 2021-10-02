@@ -533,7 +533,7 @@ class MainWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(str)
     def on_messageSignal(self, msg):
         
-        RT = eval('np.' + msg)
+        RT = eval('np.' + msg.replace('nan', 'np.nan'))
 
         if (self.last_RT is None) or not np.allclose(RT, self.last_RT):
             
