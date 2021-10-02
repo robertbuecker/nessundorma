@@ -62,7 +62,7 @@ class PutziniNav2:
             [0]*len(putzini_config.anchor_x)]
         ).T/100.
 
-        self.logger.info('Anchors in configuration file are %s at positions', self.anchor_idx, self.anchor_pos)
+        self.logger.info('Anchors in configuration file are %s at positions %s', self.anchor_idx, self.anchor_pos)
 
         self.distances = np.array([0.]*len(self.anchors))
         self.distances_sig = np.array([0.]*len(self.anchors))
@@ -85,6 +85,8 @@ class PutziniNav2:
         self.calibrated = (0,0,0,0)
         self.moving_straight = False
         self.straight_move_buffer = [np.empty(3)]
+        self._ranging_task = None
+        self._update_task = None
 
     async def connect(self, url='/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0', 
         baudrate=512000):
@@ -93,9 +95,7 @@ class PutziniNav2:
         t0 = time.time()
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)  
         self.logger.info('connect: Positioning device connected.')
-        asyncio.ensure_future(self._reader_task())
         await self.start_ranging()
-        self.logger.info('connect: Positioning started.')
 
         # Orientation sensor
         if self.config.use_bno055:
@@ -152,9 +152,11 @@ class PutziniNav2:
             self.logger.info(f'write_calibration_to_sensor: Sensor ready after {1000*(time.time() - t0)} ms')
             
     async def start_ranging(self):
-        await self.stop_ranging()
+        self._ranging_task = asyncio.ensure_future(self._read_serial())
+        self.writer.write(b'$PG,\r\n')
+        await asyncio.sleep(0.2)
         self.writer.write(b'$PL,\r\n')
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
         # config_string = f'$PK,{self.ids["anchor_1"]},2,1,{self.ids["anchor_2"]},{self.ids["anchor_3"]},{self.ids["tag"]},\r\n'
         config_string = f'$PK,{self.tag},0,{len(self.anchors)},{",".join(self.anchors)},\r\n'
         config_string = config_string.encode('utf-8')
@@ -162,12 +164,20 @@ class PutziniNav2:
         self.writer.write(config_string)
         self.writer.write(b'$PS,\r\n')
         self.logger.info('start_ranging: Ranging configured and started.')
-        await asyncio.sleep(2)
-        asyncio.ensure_future(self.update_position())
+        await asyncio.sleep(0.2)
+        self._update_task = asyncio.ensure_future(self.update_position())
         
     async def stop_ranging(self):
+        self._update_task.cancel()
+        self.distances = np.nan * self.distances
+        self.N_valid = {k: 0 for k in self.N_valid.keys()}  
+        asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
+                json.dumps({'N': list(self.N_valid.values()) + [0], 'd': self.distances.round(4).tolist(), 'w': self.distances.round(4).tolist()}),
+                # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
+                qos=0))        
         self.writer.write(b'$PG,\r\n')
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.5)            
+        self._ranging_task.cancel()            
             
     async def update_position(self):
         
@@ -184,13 +194,11 @@ class PutziniNav2:
 
             # compute distances from anchors. Actual position calculation happens _after_ the orientation computation
             for k, v in self._distance_buffer.items():
-                # print(v)
-                self.N_valid[k] =  len(v) - self.config.nav_avg_len
-                if len(v) > self.config.nav_avg_len:
-                    v = v[-self.config.nav_avg_len:]
-                self.distances[self.anchor_idx[k]] = np.mean(v)
-                dist_std = np.std(v)
-                self._distance_buffer[k] = v
+
+                v_valid = [(t_dist, dist) for t_dist, dist in v if t_dist > (self.timestamp - self.config.nav_avg_time) ]
+                self.N_valid[k] =  len(v_valid)
+                self.distances[self.anchor_idx[k]] = np.mean([dist for _, dist in v_valid]) if len(v_valid) > 0 else np.nan
+                self._distance_buffer[k] = v_valid
                 t0 = time.time()
 
                 # weights for optimization
@@ -270,7 +278,6 @@ class PutziniNav2:
             # print(self.N_valid)
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
                     json.dumps({'N': list(self.N_valid.values()) + [N_alpha_valid], 'd': self.distances.round(4).tolist(), 'w': w.round(4).tolist()}),
-                    # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
                     qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
@@ -314,7 +321,7 @@ class PutziniNav2:
         else:
             self.logger.info('Trying to read out BNO055 sensor while it is not enabled. Bug?')
 
-    async def _reader_task(self):
+    async def _read_serial(self):
         msg=b''
         ii = 0
         self.logger.info('_reader_task: Positioning reader task started')
@@ -356,7 +363,7 @@ class PutziniNav2:
                     if tag_id not in self._distance_buffer.keys():
                         self.logger.warning('_reader_task: Received distance from non-configured anchor %s', tag_id)
                     if (not d1 == 0) and (not d1 >= self.config.max_distance):
-                        self._distance_buffer[tag_id].append(float(d1)/100.)
+                        self._distance_buffer[tag_id].append((time.time(), float(d1)/100.))
                         # new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
                     # self._distance_buffer.append(new_dist)
                 except Exception as err:
@@ -430,10 +437,10 @@ async def main():
         print(f'Position is {nav.get_position()}')
         print(f'Angle is {nav.get_angle()}')
         print(f'Distances are {nav.distances.round(4).tolist()}') 
-        print(f'{nav.N_valid} new position readouts within {config.nav_update_rate} ms. Averaging over {config.nav_avg_len} readouts.')        
+        print(f'{nav.N_valid} valid position readouts within {config.nav_avg_time} s averaging time.')        
     await nav.stop_ranging()
+    await asyncio.sleep(1)
     await client.disconnect()
-    print('Done. Please ignore any following ERROR:asyncio messages.')
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
