@@ -152,6 +152,16 @@ If required (that is, if the show sequence on Google Docs has changed):
     python tbl2json.py https://docs.google.com/spreadsheets/d/1BTUcaonniEF3Fmb19ldBlSeylyghuEIvVK9wKNdwFXI C:\Users\markus\Desktop\Nessun-Dorma-Stories\Hamburg-01.json
     ```
 
+## Speech synthesis
+**...only works on a Mac**
+
+...is required if anything changes in the "Regie" lines.
+- Generate a json story file as described above... just call it `story.json`.
+- run: `./record_speech.py`. This will generate `.wav` sound files in the subfolder `speech`. They are named `<xxx>.wav`, where `<xxx>` is the md5-hash of the text that is spoken. If that file already exists, it will not be re-generated.
+- upload the `speech` folder to the projector computer using this command:
+    ```
+    rsync -avz speech pi@beamer-pi:/home/pi/nessundorma
+    ```
 ## Projector
 The Raspberry Pi should automatically switch on and be properly configured... mostly (see below).
 

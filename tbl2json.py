@@ -21,10 +21,12 @@ import numpy as np
 import re
 from copy import deepcopy
 import matplotlib.pyplot as plt
+from hashlib import md5
 
 dfs = []
-for tbl_name in argv[1:]:
-
+fn_out = None
+for ii, tbl_name in enumerate(argv[1:]):
+    
     # TODO consider replacing the pandas dependency by csv (but I'm too lazy)
     if tbl_name.endswith('xlsx'):
         df = pd.read_excel(tbl_name) 
@@ -34,8 +36,11 @@ for tbl_name in argv[1:]:
         url = tbl_name + '/export?gid=0&format=csv'
         print('Getting table from:', url)
         df = pd.read_csv(request.urlopen(url))
+    elif (ii == len(argv)-2) and tbl_name.endswith('json'):
+        # it's the output file. Yep, that is dirty.
+        fn_out = tbl_name
     else:
-        raise ValueError('Input not recognized')
+        raise ValueError(f'Input not recognized: {tbl_name}')
     
     dfs.append(df)
     
@@ -100,59 +105,41 @@ def arka_validate(arka_par):
 # DataFrame of all steps
 steps = df.dropna(axis=0, how='all').reset_index(drop=True)
 steplist = []
+col = [c for c in steps.columns if c.strip() == 'parameter.beamer'][0]
+
 for st in steps.to_dict(orient='records'):
-    #TODO writing this as Spaghetti. Refactor one fine day.
 
     skip_append = False # do not append step to final version at the end of iteration?
     stepname = st['name']
     log = lambda msg: print(f'In step {stepname}: {msg}', file=stderr)
 
-    # PUTZINI MOVE VALIDATION --- (historical)
-    pm = str(st['parameter.putzini.move'])
-    pm_prev = steplist[-1]['parameter.putzini.move'] if steplist else None
-
-    # ARKA VALIDATION ---
-    # works a bit different from Putzini, as Arka has its paramters as hierarchy.
-    # does not quite work yet, unfortunately, as it's tricky to reconstruct a full
-    # state vector of Arka from the table.
+    try:
+        ln = json.loads(st[col])['Regie']
+    except (KeyError, TypeError):
+        ln = None
+        pass
     
-    if False:
-    # fill in a complete set of arka parameters...
-        arka_par = {}
-        for k in [k for k in steps.columns if k.startswith('parameter.arka')]:
-            if (k in st) and pd.notna(st[k]) and (st[k] is not None):
-                arka_par[k] = st[k]
-            else:
-                for st_prev in reversed(steplist):
-                    if (k in st_prev) and pd.notna(st_prev[k]) and (st_prev[k] is not None):
-                        arka_par = st[k]
-                        break
-                else:
-                    arka_par[k] = None
+    if ln is not None:
+        fn = 'speech/' + md5(ln.encode()).hexdigest() + '.wav'
+        print('Found speech (Regie) line:', ln)
+        print('Inferred filename is', fn)
+        st['parameter.player.play'] = json.dumps({'file': fn})
+        print('---')
 
-        arka_par = expand_nested(arka_par)
-        
-        if not arka_validate(arka_par):
-            log(f'Invalid arka parameters: {arka_par}')
-    
     if not skip_append:
         steplist.append(st)
 
-if False:
-    fh, ax = plt.subplots(1,1)
-    arka = plt.Circle((0, 0), 700, color='k', alpha=0.5)
-    ax.add_artist(arka)
-    ax.plot(putz_pos[:,0], putz_pos[:,1], ':o')
-    plt.axis('equal')
-    plt.savefig('putzini.pdf')
-
-final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
-final_steps.to_csv(argv[2].rsplit('.', 1)[0] + '_processed.csv', index=False)
+if fn_out is not None:
+    final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
+    fn_csv = fn_out.rsplit('.', 1)[0] + '_processed.csv'
+    final_steps.to_csv(fn_csv, index=False)
+    print(f'Wrote final table to {fn_csv}')
 
 expanded = {'steps': [expand_nested(st) for st in steplist]}
 
-if len(argv) > 2:
-    with open(argv[2], 'w') as fh:
-        json.dump(expanded, fh, indent=2)    
+if fn_out is not None:
+    with open(fn_out, 'w') as fh:
+        json.dump(expanded, fh, indent=2) 
+    print(f'Wrote story to {fn_out}')
 else:
     print(json.dumps(expanded, indent=2, allow_nan=False))

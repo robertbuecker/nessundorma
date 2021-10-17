@@ -1,0 +1,9 @@
+Putzini checklist
+user antonie, pw 20L07
+
+- Sound device (Alt-Click in Titelleiste): Kopfhörer 
+- 3 Terminals öffnen (iTerm), alle in ~/Documents/codes/nessundorma
+	1.: ./plotLive.py
+	2.: ./music_via_mqtt.py
+	3.: ./say_via_mqtt.py
+- Über SSH auf putzini@172.31.1.200, dort tmux (bzw tmux attach), darin: cd nessundorma; ./hover.py
