@@ -1,6 +1,6 @@
 anchor_names: !!python/tuple [B4E7, B4DE, B4D3, B4D9]
 anchor_x: !!python/tuple [100, -100, -100, 100]
-anchor_y: !!python/tuple [-370, 300, -300, -370]
+anchor_y: !!python/tuple [-370, -300, 300, -370]
 arka_radius: 100
 bno055_calib:
   off_acc: !!python/tuple [0, 0, 0]
