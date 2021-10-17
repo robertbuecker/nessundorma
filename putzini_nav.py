@@ -62,7 +62,7 @@ class PutziniNav2:
             [0]*len(putzini_config.anchor_x)]
         ).T/100.
 
-        self.logger.info('Anchors in configuration file are %s at positions %s', self.anchor_idx, self.anchor_pos)
+        self.logger.info('Anchors in configuration file are %s at positions:\n %s', self.anchor_idx, self.anchor_pos)
 
         self.distances = np.array([0.]*len(self.anchors))
         self.distances_sig = np.array([0.]*len(self.anchors))
@@ -162,8 +162,8 @@ class PutziniNav2:
         config_string = config_string.encode('utf-8')
         self.logger.info('start_ranging: Sending configuration to DW1000 master: %s', config_string)
         self.writer.write(config_string)
+        await asyncio.sleep(0.2)
         self.writer.write(b'$PS,\r\n')
-        self.logger.info('start_ranging: Ranging configured and started.')
         await asyncio.sleep(0.2)
         self._update_task = asyncio.ensure_future(self.update_position())
         
@@ -429,10 +429,10 @@ async def main():
     state = PutziniState(client)
     keepout = PutziniKeepoutArea(client, config)
     nav = PutziniNav2(client, state, config, keepout)
-    print('Running nav for 10 s and shutting down.')
+    print('Running nav for 5 s and shutting down.')
     await nav.connect()
     for ii in range(10):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
         print(ii+1, '---')
         print(f'Position is {nav.get_position()}')
         print(f'Angle is {nav.get_angle()}')

@@ -22,4 +22,4 @@ room_rotation: 0
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 230, 163, 0, -163, -230, -163]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
-marker_map: aruco_xpon.yml
+marker_map: schauspielhaus.yml

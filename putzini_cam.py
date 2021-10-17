@@ -53,7 +53,7 @@ class PutziniCam:
                                 [sa, ca, 0, y],
                                 [0, 0, 1, z],
                                 [0, 0, 0, 1]])
-            self.logger.info('Setting reference system w.r.t. marker system to %s', reference)
+            self.logger.info('Setting reference system w.r.t. marker system to \n%s', reference)
             # print(reference)
             self.RT_mr = np.matmul(reference, np.diag([1, -1, -1, 1]))
 

@@ -71,6 +71,25 @@ The next step depends on whether Putzini is already running (see above) or you s
 
 ...using the graphical interface.
 
+## Aruco mapping
+
+Connect to Putzini via NoMachine. If you don't see it in the connection window, connect via SSH and run `sudo /usr/NX/nxserver --restart`. Password is `lovearka`.
+On Putzini, do NOT start `hover.py`, but `hover_manual.py`. This will allow you to drive around during the mapping manually.
+
+Once you have logged in via NoMachine, start a terminal. Navigate to folder: `cd ~/nessundorma`. Then start the camera using `aruco_test live:0 -c calib_usbgs/usbgs.yml` and check if the markers are found.
+
+If it looks well, start the mapping program by:
+
+```
+mapper_from_video live calib_usbgs/usbgs.yml <MARKERSIZE> -out <NAME OF THEATER> -d ARUCO_MIP_16h3
+```
+
+where `<MARKERSIZE>` is the size of the markers in m, typically e.g. 17.3, and `<NAME OF THEATER>`... guess yourself.
+
+Now drive around, watching the video screen, until you think you have seen all markers. Then, press Esc. A lengthy computation will start in the command window. Have a coffee. After it's done, a window with a 3D rendering of the marker positions will appear. You can scroll and zoom around, to check if the result of the marker positions make sense. Hit Esc again.
+You will now have a file `<NAME OF THEATER>.yml` which contains the mapping information.
+Enter that filename as `marker_map` in `putzini.yaml`.
+
 ## Putzini navigation bugfixing
 
 If you do not see three/four distance circles in the Putzini UI, something is wrong with the config of the navigation transmitters.
