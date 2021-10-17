@@ -1,7 +1,6 @@
-anchor_names: !!python/tuple [B4D3, B4E7, B4DE]
-anchor_x: !!python/tuple [230, 230, 425]
-# anchor_y: !!python/tuple [-170, 115, 56]
-anchor_y: !!python/tuple [-195, 133, 79]
+anchor_names: !!python/tuple [B4E7, B4DE, B4D3, B4D9]
+anchor_x: !!python/tuple [100, -100, -100, 100]
+anchor_y: !!python/tuple [-370, 300, -300, -370]
 arka_radius: 100
 bno055_calib:
   off_acc: !!python/tuple [0, 0, 0]
@@ -10,7 +9,7 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 977
 cam_rotation: 76.7
-keepout_img: xpon.tiff
+keepout_img: schauspielhaus.tiff
 max_distance: 700
 minimum_calib_level: 0
 mqtt_broker: 172.31.1.150
