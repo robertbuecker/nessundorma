@@ -66,6 +66,7 @@ class PutziniNav2:
 
         self.distances = np.array([0.]*len(self.anchors))
         self.distances_sig = np.array([0.]*len(self.anchors))
+        self.anchor_weights = np.array([0.]*len(self.anchors))
         self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
         self._alpha_buffer = [np.array([0., 0., 0.])]
         self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
@@ -210,6 +211,8 @@ class PutziniNav2:
                 except Exception as err:
                     self.logger.exception('update_position: Cannot calculate weights')
                     w = np.array([1.]*len(self.distances))
+                    
+                self.anchor_weights = w
 
             # compute absolute orientation
             if (self.cam is None) and (self.sensor is not None):
