@@ -12,7 +12,7 @@ aruco-minSize_pix: -1
 aruco-enclosedMarker: 0
 aruco-NAttemptsAutoThresFix: 3
 aruco-AdaptiveThresWindowSize: -1
-aruco-ThresHold: 7c
+aruco-ThresHold: 7
 aruco-AdaptiveThresWindowSize_range: 0
 aruco-markerWarpPixSize: 5
 aruco-autoSize: 0

@@ -2,10 +2,22 @@
 ---
 aruco-dictionary: ARUCO_MIP_16h3
 aruco-detectMode: DM_NORMAL
-aruco-cornerRefinementM: CORNER_LINES
+aruco-cornerRefinementM: CORNER_NONE
 aruco-thresMethod: THRES_ADAPTIVE
-aruco-markerSize: 0.192
-aruco-ThresHold: 7
+aruco-maxThreads: 1
+aruco-borderDistThres: 1.4999999664723873e-02
+aruco-lowResMarkerSize: 20
+aruco-minSize: 0.
+aruco-minSize_pix: -1
+aruco-enclosedMarker: 0
+aruco-NAttemptsAutoThresFix: 3
+aruco-AdaptiveThresWindowSize: -1
+aruco-ThresHold: 15
 aruco-AdaptiveThresWindowSize_range: 0
-dcf-detectRate: 10
-runSequential: 1
+aruco-markerWarpPixSize: 5
+aruco-autoSize: 0
+aruco-ts: 2.5000000000000000e-01
+aruco-pyrfactor: 2.
+aruco-error_correction_rate: 0.
+aruco-trackingMinDetections: 0
+aruco-closingSize: 0

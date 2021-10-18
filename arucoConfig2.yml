@@ -1,0 +1,11 @@
+%YAML:1.0
+---
+aruco-dictionary: ARUCO_MIP_16h3
+aruco-detectMode: DM_NORMAL
+aruco-cornerRefinementM: CORNER_LINES
+aruco-thresMethod: THRES_ADAPTIVE
+aruco-markerSize: 0.173
+aruco-ThresHold: 20
+# aruco-AdaptiveThresWindowSize_range: 0
+dcf-detectRate: 10
+# runSequential: 1
