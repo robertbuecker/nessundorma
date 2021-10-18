@@ -24,6 +24,7 @@ class PutziniConfig:
         self.max_distance = 700
         self.mqtt_broker = '172.31.1.150'
         self.marker_map = 'markerset.yml'
+        self.camera_calib = 'microsoft.yml'
         try:
             self.from_yaml()
         except FileNotFoundError:

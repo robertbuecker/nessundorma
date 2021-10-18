@@ -75,6 +75,7 @@ class PutziniNav2:
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
+        self.sensor_cam_offset = 0.
         self.alpha = np.array([0.]*3)
         self.t_last_angle = 0
         self.timestamp = -1.
@@ -111,6 +112,9 @@ class PutziniNav2:
             await self.write_calibration_to_sensor(reset=True, restart=False)
             # asyncio.ensure_future(self._read_bno055())
             self.logger.info('connect: Orientation sensor started.')    
+            if self.cam is not None:
+                self.logger.info('Camera is used for absolute orientation. Setting BNO055 to IMU mode')
+                self.sensor.mode = adafruit_bno055.IMUPLUS_MODE
         else:
             self.logger.info('connect: Orientation sensor is disabled.')
 
@@ -147,7 +151,7 @@ class PutziniNav2:
             self.sensor.radius_magnetometer = calib['rad_mag']
             # self.sensor.mode = adafruit_bno055.NDOF_FMC_OFF_MODE
             self.logger.info(f'write_calibration_to_sensor: Sensor parameter write completed after {1000*(time.time() - t0)} ms')
-            self.sensor.mode = adafruit_bno055.NDOF_MODE     
+            self.sensor.mode = adafruit_bno055.NDOF_MODE if self.cam is None else adafruit_bno055.IMUPLUS_MODE
             await asyncio.sleep(1)
             self.read_calibration_from_sensor()   
             self.logger.info(f'write_calibration_to_sensor: Sensor ready after {1000*(time.time() - t0)} ms')
@@ -182,6 +186,9 @@ class PutziniNav2:
             
     async def update_position(self):
         
+        last_alpha_cam = np.nan
+        last_alpha_sensor = np.nan
+
         while True:
 
             ela = time.time() - self.timestamp
@@ -227,6 +234,36 @@ class PutziniNav2:
 
                 self._alpha_buffer = []            
                 # self.logger.info('Angle from BNO055 is %s w.r.t. room CS.', self.alpha[0])
+
+            elif (self.cam is not None) and (self.sensor is not None):
+                # N_alpha_valid = 1
+                alpha_cam = self.cam.get_angle()
+                try:
+                    sensor_angle = -self.sensor.euler[0]
+                    N_alpha_valid = 1
+                except (OSError, TypeError) as err:
+                    self.logger.warning(f'Could not read orientation sensor: {err}. Maybe it is restarting?')
+                    N_alpha_valid = 0
+                    await asyncio.sleep(0.5)
+
+                # await self._read_bno055()
+                # euler = np.array(self.sensor.euler)
+
+                d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
+                if np.isnan(last_alpha_cam) or (abs(d_alpha_cam) > 1):
+                    # camera has changed by more than 1 degree since last recalibration: recalibrate sensor
+                    last_alpha_cam = alpha_cam
+                    self.sensor_cam_offset = (sensor_angle - alpha_cam + 180) % 360 - 180
+                    self.logger.info(f'd_alpha_cam was {d_alpha_cam}. Resetting sensor angle difference to {self.sensor_cam_offset} deg')
+
+                # self.sensor_cam_offset = alpha_cam 
+                alpha_final = (sensor_angle - self.sensor_cam_offset + 180) % 360 - 180
+                self.alpha = np.array([alpha_final, 0, 0])
+
+                print(f'{alpha_cam:.1f}, {sensor_angle:.1f}, {self.alpha[0]:.1f}')
+
+                # alpha_room = (alpha_cam - self.config.room_rotation - self.config.cam_rotation + 180) % 360 - 180
+
 
             elif self.cam is not None:
                 # get angle from camera
@@ -427,6 +464,7 @@ async def main():
     import asyncio_mqtt as mqtt
     from putzini_config import PutziniConfig
     config = PutziniConfig()
+    conig.use_bno055 = False
     client = mqtt.Client(config.mqtt_broker)
     await client.connect()
     state = PutziniState(client)

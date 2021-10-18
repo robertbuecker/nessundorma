@@ -21,3 +21,4 @@ aruco-pyrfactor: 2.
 aruco-error_correction_rate: 0.
 aruco-trackingMinDetections: 0
 aruco-closingSize: 0
+dcf-detectRate: 10
