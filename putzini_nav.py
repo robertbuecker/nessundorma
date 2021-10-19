@@ -251,14 +251,17 @@ class PutziniNav2:
                 # await self._read_bno055()
                 # euler = np.array(self.sensor.euler)
 
+                # TODO: introduce some more sophisticated sanity checks here to properly weigh cam and gyro
+                # TODO: potentially factoring in motion state
                 d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
                 if abs(d_alpha_cam) > 10:
-                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam}. This might indicate bad trouble.')
-                if np.isnan(last_alpha_cam) or (abs(d_alpha_cam) > 5):
+                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. This might indicate trouble.')
+
+                if np.isnan(last_alpha_cam) or ((abs(d_alpha_cam) > 5) and (self.cam.detected >= 2)):
                     # camera has changed by more than 1 degree since last recalibration: recalibrate sensor
                     last_alpha_cam = alpha_cam
                     self.sensor_cam_offset = (sensor_angle - alpha_cam + 180) % 360 - 180
-                    self.logger.info(f'd_alpha_cam was {d_alpha_cam}. Resetting sensor angle difference to {self.sensor_cam_offset} deg from {self.cam.detected} markers.')
+                    self.logger.info(f'd_alpha_cam was {d_alpha_cam:.1f}. Resetting sensor angle difference to {self.sensor_cam_offset:.1f} deg from {self.cam.detected:.1f} markers.')
 
                 # self.sensor_cam_offset = alpha_cam 
                 alpha_final = (sensor_angle - self.sensor_cam_offset + 180) % 360 - 180
@@ -286,6 +289,7 @@ class PutziniNav2:
             include_z = False
 
             # compute actual position from distances
+            # TODO check if nansum with minimum valid values would work, and handle nan cases gracefully
             if include_z:
                 def error(x):
                     dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
