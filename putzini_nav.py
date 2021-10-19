@@ -237,7 +237,7 @@ class PutziniNav2:
 
             elif (self.cam is not None) and (self.sensor is not None):
                 # N_alpha_valid = 1
-                alpha_cam = self.cam.get_angle()
+                alpha_cam = await self.cam.get_new_angle()
                 try:
                     sensor_angle = -self.sensor.euler[0]
                     N_alpha_valid = 1
@@ -250,17 +250,19 @@ class PutziniNav2:
                 # euler = np.array(self.sensor.euler)
 
                 d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
-                if np.isnan(last_alpha_cam) or (abs(d_alpha_cam) > 1):
+                if abs(d_alpha_cam) > 10:
+                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam}. This might indicate bad trouble.')
+                if np.isnan(last_alpha_cam) or (abs(d_alpha_cam) > 5):
                     # camera has changed by more than 1 degree since last recalibration: recalibrate sensor
                     last_alpha_cam = alpha_cam
                     self.sensor_cam_offset = (sensor_angle - alpha_cam + 180) % 360 - 180
-                    self.logger.info(f'd_alpha_cam was {d_alpha_cam}. Resetting sensor angle difference to {self.sensor_cam_offset} deg')
+                    self.logger.info(f'd_alpha_cam was {d_alpha_cam}. Resetting sensor angle difference to {self.sensor_cam_offset} deg from {self.cam.detected} markers.')
 
                 # self.sensor_cam_offset = alpha_cam 
                 alpha_final = (sensor_angle - self.sensor_cam_offset + 180) % 360 - 180
                 self.alpha = np.array([alpha_final, 0, 0])
 
-                print(f'{alpha_cam:.1f}, {sensor_angle:.1f}, {self.alpha[0]:.1f}')
+                self.logger.debug(f'alpha_cam={alpha_cam:.1f}, sensor_angle={sensor_angle:.1f}, final_angle={self.alpha[0]:.1f}')
 
                 # alpha_room = (alpha_cam - self.config.room_rotation - self.config.cam_rotation + 180) % 360 - 180
 
@@ -464,7 +466,7 @@ async def main():
     import asyncio_mqtt as mqtt
     from putzini_config import PutziniConfig
     config = PutziniConfig()
-    conig.use_bno055 = False
+    config.use_bno055 = False
     client = mqtt.Client(config.mqtt_broker)
     await client.connect()
     state = PutziniState(client)

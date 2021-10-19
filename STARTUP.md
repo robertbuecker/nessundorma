@@ -73,10 +73,12 @@ The next step depends on whether Putzini is already running (see above) or you s
 
 ## Aruco mapping
 
+Video settings: `v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=50`.
+
 Connect to Putzini via NoMachine. If you don't see it in the connection window, connect via SSH and run `sudo /usr/NX/nxserver --restart`. Password is `lovearka`.
 On Putzini, do NOT start `hover.py`, but `hover_manual.py`. This will allow you to drive around during the mapping manually.
 
-Once you have logged in via NoMachine, start a terminal. Navigate to folder: `cd ~/nessundorma`. Then start the camera using `aruco_test live:0 -c calib_usbgs/usbgs.yml` and check if the markers are found.
+Once you have logged in via NoMachine, start a terminal. Navigate to folder: `cd ~/nessundorma`. Then start the camera using `aruco_test live:0 -c microsoft.yml` and check if the markers are found. You can furthermore fiddle with the settings.
 
 If it looks well, start the mapping program by:
 
