@@ -237,7 +237,8 @@ class PutziniNav2:
 
             elif (self.cam is not None) and (self.sensor is not None):
                 # N_alpha_valid = 1
-                alpha_cam = await self.cam.get_new_angle()
+                # alpha_cam = await self.cam.get_new_angle()
+                alpha_cam = self.cam.get_angle()
                 try:
                     sensor_angle = -self.sensor.euler[0]
                     N_alpha_valid = 1
