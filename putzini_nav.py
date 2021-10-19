@@ -237,8 +237,8 @@ class PutziniNav2:
                 # self.logger.info('Angle from BNO055 is %s w.r.t. room CS.', self.alpha[0])
 
             elif (self.cam is not None) and (self.sensor is not None):
-                # N_alpha_valid = 1
-                # alpha_cam = await self.cam.get_new_angle()
+                # use both cam and sensor: sensor is used to get the actual angle, camera corrects drifts by a varying offset
+
                 alpha_cam = self.cam.get_angle()
                 try:
                     sensor_angle = -self.sensor.euler[0]
@@ -248,29 +248,23 @@ class PutziniNav2:
                     N_alpha_valid = 0
                     await asyncio.sleep(0.5)
 
-                # await self._read_bno055()
-                # euler = np.array(self.sensor.euler)
-
-                # TODO: introduce some more sophisticated sanity checks here to properly weigh cam and gyro
-                # TODO: potentially factoring in motion state
                 d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
                 if abs(d_alpha_cam) > 10:
                     self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. This might indicate trouble.')
+                
+                # only recalibrate if deviation is large and quality of camera signal is good, that is,
+                # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
+                do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (max(self.cam.alpha[:2].abs()) < 20)
 
-                if np.isnan(last_alpha_cam) or ((abs(d_alpha_cam) > 5) and (self.cam.detected >= 2)):
-                    # camera has changed by more than 1 degree since last recalibration: recalibrate sensor
+                if np.isnan(last_alpha_cam) or do_recalib:
                     last_alpha_cam = alpha_cam
                     self.sensor_cam_offset = (sensor_angle - alpha_cam + 180) % 360 - 180
                     self.logger.info(f'd_alpha_cam was {d_alpha_cam:.1f}. Resetting sensor angle difference to {self.sensor_cam_offset:.1f} deg from {self.cam.detected:.1f} markers.')
 
-                # self.sensor_cam_offset = alpha_cam 
                 alpha_final = (sensor_angle - self.sensor_cam_offset + 180) % 360 - 180
                 self.alpha = np.array([alpha_final, 0, 0])
 
                 self.logger.debug(f'alpha_cam={alpha_cam:.1f}, sensor_angle={sensor_angle:.1f}, final_angle={self.alpha[0]:.1f}')
-
-                # alpha_room = (alpha_cam - self.config.room_rotation - self.config.cam_rotation + 180) % 360 - 180
-
 
             elif self.cam is not None:
                 # get angle from camera
@@ -290,19 +284,29 @@ class PutziniNav2:
 
             # compute actual position from distances
             # TODO check if nansum with minimum valid values would work, and handle nan cases gracefully
-            if include_z:
-                def error(x):
-                    dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
-                    f = (w * dist_err**2).sum()
-                    return f
-                self.position = minimize(error, self.position, method='BFGS').x
+
+            missing = np.isnan(self.distances).sum()
+            
+            if missing > 0:
+                self.logger.warn('%s distance signals are missing', missing)
+
+            if (len(self.distances) - missing) < 3:
+                self.logger.error('Have less than three distance signals. Cannot determine position!')
 
             else:
-                def error(x):
-                    dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
-                    f = (w * dist_err**2).sum()
-                    return f
-                self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
+                if include_z:
+                    def error(x):
+                        dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
+                        f = (w * dist_err**2).sum()
+                        return f
+                    self.position = minimize(error, self.position, method='BFGS').x
+
+                else:
+                    def error(x):
+                        dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
+                        f = (w * dist_err**2).sum()
+                        return f
+                    self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 
             try:
                 self.keepout.validate(self.position[0], self.position[1])
