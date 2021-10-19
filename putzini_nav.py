@@ -70,6 +70,7 @@ class PutziniNav2:
         self._distance_buffer = {k.encode(): [] for k in putzini_config.anchor_names}
         self._alpha_buffer = [np.array([0., 0., 0.])]
         self.N_valid = {k.encode(): 0 for k in putzini_config.anchor_names}
+        self.distance_factors = {k.encode(): fac for k, fac in zip(putzini_config.anchor_names, putzini_config.distance_factors)}
         # self.position = self.anchor_pos.mean(axis=0)
         self.position = np.array([3, 0., 0.])
         self.position[2] = -0.05
@@ -406,7 +407,7 @@ class PutziniNav2:
                     if tag_id not in self._distance_buffer.keys():
                         self.logger.warning('_reader_task: Received distance from non-configured anchor %s', tag_id)
                     if (not d1 == 0) and (not d1 >= self.config.max_distance):
-                        self._distance_buffer[tag_id].append((time.time(), float(d1)/100.))
+                        self._distance_buffer[tag_id].append((time.time(), float(d1)/100.*self.distance_factors[tag_id]))
                         # new_dist[self.anchor_idx[tag_id]] = float(d1)/100.
                     # self._distance_buffer.append(new_dist)
                 except Exception as err:
