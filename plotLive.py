@@ -517,12 +517,12 @@ class MainWindow(QtGui.QWidget):
             
             if self.update_graph.isChecked():        
                 plot_dat = []
-                for lbl, x, y, d, fac in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y, 
-                                             dist, self.opts.distance_factors):
+                for lbl, x, y, d in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y, 
+                                             dist):
                 # self.anchors.clear()   
                     self.anchors[lbl].setData(x=[x], y=[y], brush=None, 
                                               pen=pg.mkPen((200,100,100,90), width=6), 
-                                              pxMode=False, size=2*fac*d)
+                                              pxMode=False, size=2*d)
                     
                 #     plot_dat.append({'pos': (x, y),
                 #                     'size': d,
