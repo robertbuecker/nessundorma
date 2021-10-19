@@ -249,17 +249,18 @@ class PutziniNav2:
                     await asyncio.sleep(0.5)
 
                 d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
-                if abs(d_alpha_cam) > 10:
-                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. This might indicate trouble.')
                 
                 # only recalibrate if deviation is large and quality of camera signal is good, that is,
                 # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
-                do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (max(self.cam.alpha[:2].abs()) < 20)
+                do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
 
+                if do_recalib and (abs(d_alpha_cam) > 10):
+                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. This might indicate trouble.')
+                
                 if np.isnan(last_alpha_cam) or do_recalib:
                     last_alpha_cam = alpha_cam
                     self.sensor_cam_offset = (sensor_angle - alpha_cam + 180) % 360 - 180
-                    self.logger.info(f'd_alpha_cam was {d_alpha_cam:.1f}. Resetting sensor angle difference to {self.sensor_cam_offset:.1f} deg from {self.cam.detected:.1f} markers.')
+                    self.logger.info(f'd_alpha_cam was {d_alpha_cam:.1f}. Resetting sensor angle difference to {self.sensor_cam_offset:.1f} deg from {self.cam.detected:d} markers.')
 
                 alpha_final = (sensor_angle - self.sensor_cam_offset + 180) % 360 - 180
                 self.alpha = np.array([alpha_final, 0, 0])
