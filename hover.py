@@ -66,8 +66,6 @@ class Putzini:
         self.putz_per_meter = 17241*0.9
 
         self.command_state = {}
-        
-
 
     async def start(self):
         d = asyncio.ensure_future(self.drive.connect())
@@ -77,15 +75,16 @@ class Putzini:
         if self.cam is not None:
             c = asyncio.ensure_future(self.cam.start())
         
-        self.mqtt_logging_handler = PutziniMqttLoggingHandler(self.mqtt_client, "putzini/logs")
-        self.mqtt_logging_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s: %(message)s'))
-        logging.getLogger('').addHandler(self.mqtt_logging_handler)
-        logging.error("Registered Handler")
+        if self.config.log_to_mqtt:
+            self.mqtt_logging_handler = PutziniMqttLoggingHandler(self.mqtt_client, "putzini/logs")
+            self.mqtt_logging_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s: %(message)s'))
+            logging.getLogger('').addHandler(self.mqtt_logging_handler)
+            logging.error("Registered MQTT logging handler")
           
         if self.cam is not None:
             await asyncio.gather(d, n, l, m, c)
         else:
-            await asyncio.gather(d, n, m)
+            await asyncio.gather(d, n, l, m)
 
     async def update_command_state(self, new_commands: dict):
         self.command_state.update(new_commands)
