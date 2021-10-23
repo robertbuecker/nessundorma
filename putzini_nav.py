@@ -178,7 +178,9 @@ class PutziniNav2:
         self.distances = np.nan * self.distances
         self.N_valid = {k: 0 for k in self.N_valid.keys()}  
         asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
-                json.dumps({'N': list(self.N_valid.values()) + [0], 'd': self.distances.round(4).tolist(), 'w': self.distances.round(4).tolist()}),
+                json.dumps({'N': list(self.N_valid.values()) + [0], 
+                'd': self.distances.round(4).tolist(), 
+                'w': self.distances.round(4).tolist()}),
                 # f'{{"N": {N_valid}, "d": {self.distances.round(4)}}}', 
                 qos=0))        
         self.writer.write(b'$PG,\r\n')
@@ -330,7 +332,8 @@ class PutziniNav2:
 
             # print(self.N_valid)
             asyncio.ensure_future(self.mqtt_client.publish("putzini/distances", 
-                    json.dumps({'N': list(self.N_valid.values()) + [N_alpha_valid], 'd': self.distances.round(4).tolist(), 'w': w.round(4).tolist()}),
+                    json.dumps({'N': list(self.N_valid.values()) + [N_alpha_valid], 
+                    'd': self.distances.round(4).tolist(), 'w': w.round(4).tolist()}),
                     qos=0))
             asyncio.ensure_future(self.mqtt_client.publish("putzini/position", repr(self.RT_rp), qos=0))
             self.state.set_position_with_alpha(self.position, self.alpha)
