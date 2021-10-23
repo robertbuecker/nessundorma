@@ -250,14 +250,19 @@ class PutziniNav2:
                     N_alpha_valid = 0
                     await asyncio.sleep(0.5)
 
-                d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180
+                d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180              
+                sensor_deviation = (alpha_cam - (sensor_angle - self.sensor_cam_offset) + 180) % 360 - 180
                 
                 # only recalibrate if deviation is large and quality of camera signal is good, that is,
                 # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
+                # TODO: include minimum (and maximum?) sensor_deviation criterion
                 do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
 
+                if do_recalib and (abs(sensor_deviation) > 10):
+                    self.logger.warning(f'Angle difference between cam and gyro is {sensor_deviation:.1f} from {self.cam.detected} markers during state {self.state.action}.')
+                
                 if do_recalib and (abs(d_alpha_cam) > 10):
-                    self.logger.warning(f'Relative angle found by camera and gyro was {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. This might indicate trouble.')
+                    self.logger.warning(f'Angle found by camera changed by {d_alpha_cam:.1f} from {self.cam.detected} markers during state {self.state.action}. Recalibrating nevertheless...')
                 
                 if np.isnan(last_alpha_cam) or do_recalib:
                     last_alpha_cam = alpha_cam
