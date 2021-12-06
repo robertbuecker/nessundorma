@@ -77,6 +77,7 @@ click „Hamburg-01.json“ and load it again in dialog
     ```
     python tbl2json.py https://docs.google.com/spreadsheets/d/1BTUcaonniEF3Fmb19ldBlSeylyghuEIvVK9wKNdwFXI C:\Users\markus\Desktop\Nessun-Dorma-Stories\Hamburg-01.json
 
+click connect
 
 ## Projector
 turn on with remote.
@@ -85,7 +86,7 @@ you will hear a loud sound if you made it
 
 ## Putzini switch-on
 - disconnect charger
-- disconnect charger forloudspeaker and connect it to orientation-stickie
+- disconnect charger for loudspeaker and connect it to orientation-stickie
 - Make sure the internal loudspeaker is switched on (button on the far side) and connected (3.5" jack)
 - Switch on the logic boards (upper lever switch up!)
 - Switch on the drive board (lower push button: "upwards pitched" sound!)
@@ -151,7 +152,8 @@ if door to storage room is open, close with the screw. it’s our alarm-system b
   - turn key, set to T1, turn key back
   - "User" button -> Administrator, pw kuka -> log on
   - Top left corner button -> Shutdown -> "Shut down control PC" -> Yes
-- Switch off power supply mains
+  - 
+- Switch off power supply mains !!!
 
 
 ## Putzini switch-off
