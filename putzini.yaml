@@ -23,5 +23,7 @@ room_rotation: 0
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 210, 163, 0, -160, -210, -160]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
-marker_map: schauspielhaus.yml
+marker_map: lichthof.yml
 log_to_mqtt: false
+# camera_calib: calib_usbgs/usbgs.yml
+camera_calib: microsoft.yml

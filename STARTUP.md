@@ -156,7 +156,11 @@ For a graceful shutdown of Putzini, please do the following:
 # Stuff needed for installation
 ## Aruco mapping
 
-Video settings: `v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=50`.
+Video settings for Global Shutter board camera in absolute exposure mode: `v4l2-ctl -c exposure_auto=1 -c contrast=95 -c exposure_absolute=5000 -c backlight_compensation=0`.
+
+Video settings for Global Shutter board camera in adaptive mode: `v4l2-ctl -c exposure_auto=3 -c contrast=95 -c backlight_compensation=50 -c brightness=0`.
+
+Video settings for Microsoft camera: `v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=30`.
 
 Connect to Putzini via NoMachine. If you don't see it in the connection window, connect via SSH and run `sudo /usr/NX/nxserver --restart`. Password is `lovearka`.
 On Putzini, do NOT start `hover.py`, but `hover_manual.py`. This will allow you to drive around during the mapping manually.
