@@ -17,7 +17,7 @@ class PutziniState:
     
     def set_active(self):
         self.action = 'Moving'
-        self.publish()
+        self.publish(qos=1)
         
     def set_idle(self, move_task=None):
         # called whenever a motion task is finished
@@ -44,7 +44,7 @@ class PutziniState:
 
         self.action = "Idle"
         self.message = ''
-        self.publish()
+        self.publish(qos=1)
 
     def set_error(self, message=''):
         self.action = 'Error'
@@ -52,13 +52,13 @@ class PutziniState:
         self.message = message
         # TODO to state the obvious...
         self.logger.critical('Putzini set to error state!')
-        self.publish()        
+        self.publish(qos=1)        
         
     def set_position_with_alpha(self, pos, alpha):
         self.pos = pos
         self.alpha = alpha 
-        self.publish()
+        self.publish(qos=0)
         
-    def publish(self):
+    def publish(self, qos=0):
         asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 
-            'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0], 'message': self.message}), qos=0))  
+            'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0], 'message': self.message}), qos=qos))  

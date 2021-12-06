@@ -258,7 +258,7 @@ class MainWindow(QtGui.QWidget):
         self.pos_coord.addItem(self.current_point)
         self.pos_coord.addItem(self.arka)
         self.pos_coord.addItem(self.all_points)
-        self.arka.addPoints(x=[0], y=[0], size=146)
+        self.arka.setData(x=[0], y=[0], size=146, pen=(0,100,0), brush=(0,100,0))
 
         if tilt_fig:
             self.tilt_coord = self.plot_widget.addPlot(title="Out-of-plane tilt", row=0, col=1)
@@ -473,10 +473,16 @@ class MainWindow(QtGui.QWidget):
         if 'action' in state: 
             if state["action"].lower() in ['error', 'errordontstop']:
                 self.setWindowTitle('Putzini (ERROR ERROR ERROR ERROR)')
+                self.arka.setData(x=[0], y=[0], size=146, pen=(0,100,0), brush=(255,0,0))
+                
             elif state["action"].lower() == 'moving':
                 self.setWindowTitle('Putzini (moving)')
+                self.arka.setData(x=[0], y=[0], size=146, pen=(0,100,0), brush=(0,100,0))
+                
             elif state["action"].lower() == 'idle':
                 self.setWindowTitle('Putzini (idle)')
+                self.arka.setData(x=[0], y=[0], size=146, pen=(0,100,0), brush=(0,0,150))
+                
             else:
                 self.setWindowTitle('Putzini (unknown move state)')
                 
