@@ -1,6 +1,6 @@
-anchor_names: !!python/tuple [B4E7, B4DE, B4D3, 6DE8]
-anchor_x: !!python/tuple [330, -275, -275, 330]
-anchor_y: !!python/tuple [-500, -420, 420, 500]
+anchor_names: !!python/tuple [6DE8, B4DE, B4D3, B4E7]
+anchor_x: !!python/tuple [400, -430, -430, 400]
+anchor_y: !!python/tuple [-330, -330, 330, 330]
 distance_factors: [0.95, 0.97, 0.97, 0.95]
 arka_radius: 100
 use_bno055: true
@@ -11,7 +11,7 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 977
 cam_rotation: 173
-keepout_img: schauspielhaus.tiff
+keepout_img: lichthof.tiff
 max_distance: 1000
 minimum_calib_level: 0
 mqtt_broker: 172.31.1.150
