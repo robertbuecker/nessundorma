@@ -44,7 +44,7 @@ class PutziniDrive:
         self.finished = self.loop.create_future()
         self.finished.set_result(None)
         self.period = 50e-3
-        self.wheel_balance = 1.05 # >1 -> make it move rather to the right
+        self.wheel_balance = 1.02 # larger: rather move to the left
 
     async def connect(self, url='/dev/serial/by-path/platform-70090000.xusb-usb-0:2.4:1.0-port0', baudrate=38400):
         self.reader, self.writer = await serial_asyncio.open_serial_connection(url=url, baudrate=baudrate)       

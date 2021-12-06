@@ -10,7 +10,7 @@ bno055_calib:
   off_mag: !!python/tuple [463, 361, -4]
   rad_acc: 1000
   rad_mag: 977
-cam_rotation: 173
+cam_rotation: 92
 keepout_img: lichthof.tiff
 max_distance: 1000
 minimum_calib_level: 0
@@ -19,7 +19,7 @@ nav_avg_time: 1
 nav_update_rate: 20
 range_x: !!python/tuple [-300, 350]
 range_y: !!python/tuple [-300, 300]
-room_rotation: 0
+# room_rotation: 0
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 210, 163, 0, -160, -210, -160]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
