@@ -12459,7 +12459,7 @@
     {
       "name": "Phase III, step 30",
       "comment": "\u00dcbergang - Putzini nochmal zu Arka",
-      "terminationCondition": "WairForPutzini",
+      "terminationCondition": "WaitForPutzini",
       "duration": null,
       "deltaDuration": null,
       "parameter": {
