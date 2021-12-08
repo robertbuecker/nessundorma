@@ -7,8 +7,9 @@ and evaluates JSON/Python-style dictionaries within cells.
 Additionally mangles data for random/relative/... motion, specifically for Putzini.
 Also it writes a file putzini.pdf illustrating Putzini's path.
 
-Usage: tbl2json.py [IN] [OUT]
-[IN] - csv or xlsx file, or link to Google Docs spreadsheet (without the final slash and anything after)
+Usage: tbl2json.py [IN1] [IN2] [IN3] ... [OUT]
+[IN] - csv or xlsx files, or link to Google Docs spreadsheet (without the final slash and anything after),
+        steps from those will be concatenated.
 [OUT] - output JSON file
 """
 
@@ -24,7 +25,7 @@ from hashlib import md5
 
 dfs = []
 fn_out = None
-for ii, tbl_name in enumerate(argv[1:]):
+for ii, tbl_name in enumerate(argv[1:-1]):
     
     # TODO consider replacing the pandas dependency by csv (but I'm too lazy)
     if tbl_name.endswith('xlsx'):
@@ -35,15 +36,18 @@ for ii, tbl_name in enumerate(argv[1:]):
         url = tbl_name + '/export?gid=0&format=csv'
         print('Getting table from:', url)
         df = pd.read_csv(request.urlopen(url))
-    elif (ii == len(argv)-2) and tbl_name.endswith('json'):
-        # it's the output file. Yep, that is dirty.
-        fn_out = tbl_name
     else:
         raise ValueError(f'Input not recognized: {tbl_name}')
     
     dfs.append(df)
     
 df = pd.concat(dfs, axis=0, ignore_index=True)
+
+if argv[-1].endswith('json'):
+        # it's the output file. Yep, that is dirty.
+    fn_out = argv[-1]
+else:
+    raise ValueError('Output filename must end with .json')
 
 def expand_nested(dict_in):
 
@@ -106,6 +110,8 @@ steps = df.dropna(axis=0, how='all').reset_index(drop=True)
 steplist = []
 col = [c for c in steps.columns if c.strip() == 'parameter.beamer'][0]
 
+print('Have', len(steps), 'steps.', file=stderr)
+
 for st in steps.to_dict(orient='records'):
 
     skip_append = False # do not append step to final version at the end of iteration?
@@ -120,25 +126,23 @@ for st in steps.to_dict(orient='records'):
     
     if ln is not None:
         fn = 'speech/' + md5(ln.encode()).hexdigest() + '.wav'
-        print('Found speech (Regie) line:', ln)
-        print('Inferred filename is', fn)
+        print(f'Speech line: "{ln}"., Inferred filename: {fn}.', file=stderr)
         st['parameter.player.play'] = json.dumps({'file': fn})
-        print('---')
 
     if not skip_append:
         steplist.append(st)
 
-if fn_out is not None:
-    final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
-    fn_csv = fn_out.rsplit('.', 1)[0] + '_processed.csv'
-    final_steps.to_csv(fn_csv, index=False)
-    print(f'Wrote final table to {fn_csv}')
+final_steps = pd.DataFrame.from_records(steplist, columns=steps.columns) # giving cols to ensure consistency and order
+fn_csv = fn_out.rsplit('.', 1)[0] + '_processed.csv'
+final_steps.to_csv(fn_csv, index=False)
+print(f'Wrote final table to {fn_csv}', file=stderr)
 
 expanded = {'steps': [expand_nested(st) for st in steplist]}
 
 if fn_out is not None:
     with open(fn_out, 'w') as fh:
-        json.dump(expanded, fh, indent=2) 
-    print(f'Wrote story to {fn_out}')
+        json.dump(expanded, fh, indent=2)
+    print(f'Wrote {len(expanded["steps"])} steps to {fn_out}')
+    
 else:
     print(json.dumps(expanded, indent=2, allow_nan=False))
