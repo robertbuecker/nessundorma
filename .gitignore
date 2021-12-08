@@ -5,6 +5,8 @@
 opera_data
 *.csv
 *.json
+!stories/*.json
+!stories/*.csv
 *.wav
 *.mp3
 *-checkpoint.ipynb
