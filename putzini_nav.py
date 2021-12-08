@@ -76,7 +76,7 @@ class PutziniNav2:
         self.position[2] = -0.05
         self.RT_rp = np.eye(4)
         self.sensor = None
-        self.sensor_cam_offset = 0.
+        self.sensor_cam_offset = np.nan
         self.alpha = np.array([0.]*3)
         self.t_last_angle = 0
         self.timestamp = -1.
@@ -241,7 +241,7 @@ class PutziniNav2:
             elif (self.cam is not None) and (self.sensor is not None):
                 # use both cam and sensor: sensor is used to get the actual angle, camera corrects drifts by a varying offset
 
-                alpha_cam = self.cam.get_angle()
+                alpha_cam = self.cam.get_angle() - self.config.room_rotation - self.config.cam_rotation
                 try:
                     sensor_angle = -self.sensor.euler[0]
                     N_alpha_valid = 1
@@ -250,13 +250,16 @@ class PutziniNav2:
                     N_alpha_valid = 0
                     await asyncio.sleep(0.5)
 
-                d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180              
-                sensor_deviation = (alpha_cam - (sensor_angle - self.sensor_cam_offset) + 180) % 360 - 180
-                
-                # only recalibrate if deviation is large and quality of camera signal is good, that is,
-                # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
-                # TODO: include minimum (and maximum?) sensor_deviation criterion
-                do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
+                if not np.isnan(self.sensor_cam_offset):
+                    d_alpha_cam = (alpha_cam - last_alpha_cam + 180) % 360 - 180              
+                    sensor_deviation = (alpha_cam - (sensor_angle - self.sensor_cam_offset) + 180) % 360 - 180
+                    
+                    # only recalibrate if deviation is large and quality of camera signal is good, that is,
+                    # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
+                    # TODO: include minimum (and maximum?) sensor_deviation criterion
+                    do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
+                else:
+                    do_recalib, sensor_deviation, d_alpha_cam, sensor_cam_offset = True, 180, 0, 0
 
                 if do_recalib and (abs(sensor_deviation) > 10):
                     self.logger.warning(f'Angle difference between cam and gyro is {sensor_deviation:.1f} from {self.cam.detected} markers during state {self.state.action}.')
@@ -305,14 +308,14 @@ class PutziniNav2:
                 if include_z:
                     def error(x):
                         dist_err = ((self.anchor_pos - x.reshape(1,3))**2).sum(axis=1)**.5 - self.distances
-                        f = (w * dist_err**2).sum()
+                        f = np.nansum(w * dist_err**2)
                         return f
                     self.position = minimize(error, self.position, method='BFGS').x
 
                 else:
                     def error(x):
                         dist_err = ((self.anchor_pos[:,:2] - x[:2].reshape(1,2))**2).sum(axis=1)**.5 - self.distances
-                        f = (w * dist_err**2).sum()
+                        f = np.nansum(w * dist_err**2)
                         return f
                     self.position[:2] = minimize(error, self.position[:2], method='BFGS').x        
 

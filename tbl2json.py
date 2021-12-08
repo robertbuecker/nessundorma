@@ -20,7 +20,6 @@ from urllib import request
 import numpy as np
 import re
 from copy import deepcopy
-import matplotlib.pyplot as plt
 from hashlib import md5
 
 dfs = []
