@@ -34,6 +34,10 @@ If required (that is, if the show sequence on Google Docs has changed):
     ```
     python tbl2json.py https://docs.google.com/spreadsheets/d/1BTUcaonniEF3Fmb19ldBlSeylyghuEIvVK9wKNdwFXI C:\Users\markus\Desktop\Nessun-Dorma-Stories\Hamburg-01.json
     ```
+- Hamburg Lichthof:
+    ```
+    ./tbl2json.py https://docs.google.com/spreadsheets/d/13pzQDcK9F0rRs--ez4dizz0PzOLN1q42P2OMkCMyLvw stories/lichthof.json
+    ```
 
   Load the show into the main Arka sequencer in the interface on the left side on the second tab from the right.
 

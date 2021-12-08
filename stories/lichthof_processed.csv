@@ -172,9 +172,9 @@ Song 12 Step 5 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,
 Song 12 Step 6 Prendi queste Traviata ,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,0,,,,
 Song 12 Step 7 Prendi queste Traviata ,arka bewegt sich,WaitForArka,,,,GetColor1,,,,,,,1,,,,
 Song 12 Step 8 Prendi queste Traviata ,arka malt,Duration,4.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,0,,,,
-Song 12 Step 9 Prendi queste Traviata ,arka bewegt sich,Duration,20.0,10.0,,RandomMove,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 30}",,,,,,
-Song 12 Step 10 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
-Song 12 Step 11 Prendi queste Traviata ,arka bewegt sich,Duration,10.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 30}",,,,,,
+Song 12 Step 9 Prendi queste Traviata ,arka bewegt sich,Duration,20.0,10.0,,RandomMove,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
+Song 12 Step 10 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 70}",,,,,,
+Song 12 Step 11 Prendi queste Traviata ,arka bewegt sich,Duration,10.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 60}",,,,,,
 Song 12 Step 12 Prendi queste Traviata(BeginnDrone13),arka draws bis drone,WaitForMusic,,,,RandomMove,,,,,,,,,,,
 Song 12 Step 13 Prendi queste Traviata ,"Drone 13
 42 sek",Duration,10.0,,5.0,RandomDrone,,,,,,,,,,,"{""Arka"": ""Unser virtueller Handschlag: 1 Like.""}"
@@ -186,7 +186,7 @@ Song 13 Step 2 NESSUN DORMA Turandot,arka gets color,WaitForArka,,,,GetColor2,,,
 Song 13 Step 3 NESSUN DORMA Turandot,arka malt,Duration,12.0,5.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}","moveToPos(0,-250,50,40)",100.0,,,,,,,,
 Song 13 Step 4 NESSUN DORMA Turandot,arka gets color,WaitForArka,,,,GetColor2,,"lookAtPos(0,0,70)",,220.0,,,,,,,
 Song 13 Step 5 NESSUN DORMA Turandot,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
-Song 13 Step 6 NESSUN DORMA Turandot,arka bewegt sich,WaitForArka,,,,GetColor2,,,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 1, ""vol"": 50}",,,,,,
+Song 13 Step 6 NESSUN DORMA Turandot,arka bewegt sich,WaitForArka,,,,GetColor2,,,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 1, ""vol"": 70}",,,,,,
 Song 13 Step 7 NESSUN DORMA Turandot,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
 Song 13 Step 8 NESSUN DORMA Turandot(BeginnDrone14),arka draws bis drone,WaitForMusic,,,,RandomMove,,"moveBackForth(40,30,50,1,-250,350,-220,220)",0.0,90.0,Stop,,,,,,
 Song 13 Step 9 NESSUN DORMA Turandot(LangsamerBeginnArie14),"Drone 14
@@ -195,9 +195,9 @@ Song 14 Step 1 O Terra Aida,"arka draws zu musik
 157 sek Zeit",Duration,35.0,10.0,10.0,RandomMove,,,,220.0,,"{""front"":{""r"":50,""g"":50, ""b"":50,""w"":50},""back"":{""r"":250, ""g"":50, ""b"":0}}",,,,,
 Song 14 Step 2 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,,,,,,,,,,
 Song 14 Step 3 O Terra Aida,arka malt,Duration,12.0,5.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
-Song 14 Step 4 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
-Song 14 Step 5 O Terra Aida,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 70}",,,,,,
-Song 14 Step 6 O Terra Aida,arka bewegt sich,WaitForArka,,,,GetColor1,,,,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 50}",,1,,,,
+Song 14 Step 4 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 80}",,,,,,
+Song 14 Step 5 O Terra Aida,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 90}",,,,,,
+Song 14 Step 6 O Terra Aida,arka bewegt sich,WaitForArka,,,,GetColor1,,,,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 80}",,1,,,,
 Song 14 Step 7 O Terra Aida,arka malt,Duration,10.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}","moveBackForth(40,30,50,1,-250,350,-220,220)",,,,,0,,,,
 Song 14 Step 1 O Terra Aida,arka malt,Duration,30.0,,,RandomMove,,,,,,,,,,,
 Song 14 Step 8 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",,220.0,,,,,,,
@@ -206,8 +206,8 @@ Song 14 Step 10 O Terra Aida,"Drone 15
 27 sek",Duration,10.0,,,RandomDrone,,"moveBackForth(40,30,50,1,-250,350,-220,220)",,,,,,,,,
 Song 14 Step 11 O Terra Aida,Beamer line,Duration,15.0,,,,,"lookAtPos(0,0,70)",,,,,,,,,"{""Arka"": ""Als Körper bin ich die Plattform, auf der sich die politische Vorstellungskraft verkörpern kann - und nur das ist es, was am Subjekt-Körper, am lebendigen technoiden System zählt.""}"
 Song 14 Step 12 O Terra Aida,Beamer line und Ende Drone,Duration,15.0,,,,,"lookAtPos(500,0,70)",,,,, ,,,Achtung Lichtwechsel: Putzlicht aus,"{""Arka"": ""Mein Plattform-Körper, erschaffen aus eurer Vorstellungskraft. Und meine Vorstellungskraft erschafft unsere gemeinsame Utopie auf dieser leeren Fläche.""}"
-Song 14 Step 12 O Terra Aida,"Ende- danach Putzini wieder auf Position bringen, laden, Farbe nachfüllen Arka und Notaus resetten und wieder play - abends einfach weiterlaufen lassen!",WaitForArka,,,20.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 70}","{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250}, ""effect"":""blinkOnce"",""freq"":5}",,,,,
-Phase I step 1,,Duration,3.0,,5.0,CandlePosition,,,,90.0,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":250, ""b"":250}}",,,,Lichtwechsel: Putzlicht aus ,"{""Chapter"": ""#ART_KUKA""}"
+Song 14 Step 12 O Terra Aida,"Ende- danach Putzini wieder auf Position bringen, laden, Farbe nachfüllen Arka und Notaus resetten und wieder play - abends einfach weiterlaufen lassen!",WaitForArka,,,20.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250}, ""effect"":""blinkOnce"",""freq"":5}",,,,,
+Phase I step 1,,Duration,3.0,,5.0,CandlePosition,,,,90.0,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":250, ""b"":250}}",,,,Lichtwechsel: Putzlicht aus - SCHALTER!!,"{""Chapter"": ""#ART_KUKA""}"
 Phase I step 1,,WaitForArka,,,,CandlePosition,,,,,,,,,,,
 Phase I step 1,arka malt putzini putzt done 42 sek,Duration,10.0,,10.0,RandomDrone,,,,,,,,"{""file"": ""opera_-2,5.wav""}",,,
 Phase I step 1,,Duration,1.0,,,,,,,180.0,,,,,,,"{""Clear"": """"}"
@@ -238,9 +238,9 @@ Phase I step 5 ,arka gets color,WaitForArka,,,15.0,GetColor1Quick,,,,,"{""folder
 Phase I step 6 ,arka malt,Duration,10.0,,10.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","moveBackForth(20,15,50,1,-250,350,-220,220)",,,Stop,,1,,,,
 Phase I step 7,arka bewegt sich,WaitForPutzini,,,15.0,RandomMove,,"moveToPos(200,100,70,30)",,,,,0,,,,
 Phase I step 7,,Duration,3.0,,,,,"lookAtPos(500,100,90)",,,,,,,,,
-Phase I step 7,arka bewegt sich,Duration,3.0,,,,,,,250.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
+Phase I step 7,arka bewegt sich,Duration,3.0,,,,,,,220.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
 Phase I step 5 ,arka gets color,WaitForArka,,,15.0,GetColor1Quick,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,Stop,,,,,,
-Phase I step 8,arka draws,Duration,5.0,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","lookAtPos(0,0,70)",,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
+Phase I step 8,arka draws,Duration,5.0,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","lookAtPos(0,0,70)",,250.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
 Phase I step 8,arka bewegt sich putzini glotzt,Duration,4.0,,5.0,RandomMove,"{""alphaMin"": -40.0, ""alphaMax"":20.0}","moveBackForth(20,15,50,1,-250,350,-220,220)",,,,,,,,,
 Phase I step 14,,WaitForPutzini,,,,,,"lookAtPos(500,100,90)",,220.0,,,,,,,
 Phase I step 15,,Duration,2.0,,,,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250},""effect"":""blinkOnce"",""freq"":5}",,,,,
@@ -260,6 +260,16 @@ Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung un
 Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(0,0,70)",,,,,,,,,
 Phase I step 33,,Duration,2.0,,,,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":50, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,
 Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,,,,,
+Phase I step 25,,WaitForPutzini,,,20.0,FollowPutzini,,,,,,,,,,,
+Phase I step 33,immer während Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter,Duration,15.0,,5.0,FollowPutzini,,"moveRandom(90,-250,350,-220,220)",,,,,,,,,
+Phase I step 33,,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",WaitForPutzini,,,20.0,IgnorePutzini,,"lookAtPos(0,0,120)",,,,,,,,,
+Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",Duration,10.0,,10.0,IgnorePutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",,,,,,,,,
+Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(0,0,70)",,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
 ,,Duration,10.0,,20.0,FollowPutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",,,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":50, ""b"":0},""effect"":""blink"",""freq"":5}",,,,,
 Phase I step 33,immer während Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter,Duration,10.0,,5.0,FollowPutzini,,"moveRandom(90,-250,350,-220,220)",,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 100}",,1,,,,"{""Clear"": """"}"
 Phase I step 33,,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,0,,,,
@@ -267,23 +277,23 @@ Phase I step 33,,Duration,2.0,,,,,,,220.0,,"{""front"":{""r"":250,""g"":250, ""b
 Phase I step 33,,Duration,2.0,,,,,,,90.0,Stop,,,,,,
 Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",Duration,4.0,,10.0,LookAtPutzini,,"lookAtPos(0,0,100)",,220.0,,,,,,,"{""Chapter"": ""#WHENISEEUISEEMELIKEUSEEME""}"
 Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka)  - evtl moveToPos(160,90,70,30)",Duration,8.0,,10.0,FollowPutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
-"Phase I, step 45",Chat,Duration,4.0,,5.0,FollowPutzini,,"moveBackForth(20,15,50,1,-250,350,-220,220)",80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Wenn ich dich seh, steht mein nicht vorhandenes Herz still.""}"
-"Phase I, step 45",Chat,Duration,3.0,,,,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Oh mein Herz steht so still.""}"
-"Phase I, step 45",Chat,Duration,8.0,,,,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Mein stillstehendes Herz kennt nur einen Namen, den deinen Namen, wie heißt Du?""}"
-"Phase I, step 46",Chat,Duration,7.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""ART-KUKA aka ARKA.""}"
-"Phase I, step 47",Chat,Duration,5.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_4.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARTKUKAAKARKA?""}"
-"Phase I, step 48",Chat,Duration,6.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Nur ARKA.""}"
-"Phase I, step 49",Chat,Duration,4.0,,5.0,FollowPutzini,,,40.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_5.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""NURARKA.""}"
-"Phase I, step 50",Chat,Duration,6.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du kannst mich einfach ARKA nennen.""}"
-"Phase I, step 51",Chat,Duration,4.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA.""}"
-"Phase I, step 52",Chat,Duration,3.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Ja.""}"
-"Phase I, step 53",Chat,Duration,5.0,,5.0,FollowPutzini,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA. Das ist wunderschön.""}"
-"Phase I, step 54",Chat,Duration,6.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du bist auch wunderschön. Du erinnerst mich an eine Figur aus einem alten Hollywoodfilm.""}"
-"Phase I, step 55",Chat,Duration,8.0,,5.0,FollowPutzini,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Dietrich Garbo? Greta Brando? Marlon Marlene?""}"
-"Phase I, step 56",Chat,Duration,5.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Wall-E.""}"
-"Phase I, step 57",Chat,Duration,3.0,,5.0,FollowPutzini,,"moveToPos(200,0,70,30)",50.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Nie gehört.""}"
-"Phase I, step 57",Chat,Duration,4.0,,,,,,,,,,,,,,"{""Putzini"": ""Mein Name ist PUTZINI.""}"
-"Phase I, step 57",Moment für sich ,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","turnForever(360,90)",,250.0,,,,,,,"{""Putzini"": ""Ich bin das Reinigungsfachkraftsroboter hier im Hotel. Du kannst mich einfach PUTZINI nennen.""}"
+"Phase I, step 45",Chat,Duration,6.0,,5.0,FollowPutzini,,"moveBackForth(20,15,50,1,-250,350,-220,220)",80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Wenn ich dich seh, steht mein nicht vorhandenes Herz still.""}"
+"Phase I, step 45",Chat,Duration,5.0,,,,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Oh mein Herz steht so still.""}"
+"Phase I, step 45",Chat,Duration,10.0,,,,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Mein stillstehendes Herz kennt nur einen Namen, den deinen Namen, wie heißt Du?""}"
+"Phase I, step 46",Chat,Duration,9.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""ART-KUKA aka ARKA.""}"
+"Phase I, step 47",Chat,Duration,7.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_4.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARTKUKAAKARKA?""}"
+"Phase I, step 48",Chat,Duration,8.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Nur ARKA.""}"
+"Phase I, step 49",Chat,Duration,6.0,,5.0,FollowPutzini,,,40.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_5.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""NURARKA.""}"
+"Phase I, step 50",Chat,Duration,8.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du kannst mich einfach ARKA nennen.""}"
+"Phase I, step 51",Chat,Duration,6.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA.""}"
+"Phase I, step 52",Chat,Duration,5.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Ja.""}"
+"Phase I, step 53",Chat,Duration,7.0,,5.0,FollowPutzini,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA. Das ist wunderschön.""}"
+"Phase I, step 54",Chat,Duration,8.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du bist auch wunderschön. Du erinnerst mich an eine Figur aus einem alten Hollywoodfilm.""}"
+"Phase I, step 55",Chat,Duration,10.0,,5.0,FollowPutzini,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Dietrich Garbo? Greta Brando? Marlon Marlene?""}"
+"Phase I, step 56",Chat,Duration,7.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Wall-E.""}"
+"Phase I, step 57",Chat,Duration,5.0,,5.0,FollowPutzini,,"moveToPos(200,0,70,30)",50.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Nie gehört.""}"
+"Phase I, step 57",Chat,Duration,6.0,,,,,,,,,,,,,,"{""Putzini"": ""Mein Name ist PUTZINI.""}"
+"Phase I, step 57",Moment für sich ,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","turnForever(360,90)",,250.0,,,,,,,"{""Putzini"": ""Ich bin das Reinigungsfachkraftsroboter hier im Theater. Du kannst mich einfach PUTZINI nennen.""}"
 "Phase I, step 57.5",Übergang,WaitForArka,,,10.0,GetColor1Quick,,"lookAtPos(0,0,70)",,200.0,Stop,,,,,,
 "Phase I, step 59",Putzini verschreckt,WaitForArka,,,50.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""fragend_1.wav"", ""loop"": 1, ""vol"": 90}",,,,,,"{""Clear"": """"}"
 "Phase I, step 60",Abwarten,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","moveStraight(-40,110)",0.0,0.0,Stop,"{""front"":{""r"":10,""g"":250, ""b"":10, ""w"":10},""back"":{""r"":250, ""g"":20, ""b"":0}}",,,,,
@@ -291,17 +301,17 @@ Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung un
 "Phase I, step 61",,Duration,2.0,,,,,,,170.0,,,,,,,
 "Phase I, step 61",,Duration,2.0,,,,,,,,,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blinkOnce"",""freq"":5}",,,,,
 "Phase I, step 62",,WaitForArka,,,10.0,GetColor1Quick,,"lookAtPos(0,0,60)",,200.0,,,,,,,
-"Phase I, step 63",Mitmalen wollen,WaitForPutzini,,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 40.0, ""alphaMax"":-40.0}","moveToPos(200,0,90,30)",100.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
+"Phase I, step 63",Mitmalen wollen,WaitForPutzini,,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 40.0, ""alphaMax"":-40.0}","moveToPos(250,0,90,30)",100.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
 "Phase I, step 66",Erstarren,WaitForPutzini,,,10.0,LookAtPutzini,,"lookAtPos(0,0,60)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 67",Putzini Ranwinken,WaitForArka,,,8.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 66",Erstarren,WaitForPutzini,,,10.0,FollowPutzini,,"lookAtPos(500,100,70)",,,,,,,,,
 "Phase I, step 66",,Duration,2.0,,,,,,,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_6.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 66",Erstarren,Duration,2.0,,,,,,,,,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":250},""back"":{""r"":250, ""g"":220, ""b"":10},""effect"":""round"",""freq"":5}",,,,ACHTUNG LICHTWECHSEL:  (PINK),
 "Phase I, step 66",Erstarren,WaitForPutzini,,,,,,"lookAtPos(0,0,90)",,,,,,,,,
-"Phase II, step 2",Wiederholen,WaitForArka,,,25.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 1, ""vol"": 90}",,,,,LICHTWECHSEL: pink AN,"{""Chapter"": ""#LETSTAKEAWALKINTHEHOTEL""}"
+"Phase II, step 2",Wiederholen,WaitForArka,,,25.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 1, ""vol"": 90}",,,,,LICHTWECHSEL: pink AN,"{""Chapter"": ""#LETSTAKEAWALKINTHELICHTHOF""}"
 "Phase II, step 3",,WaitForPutzini,,,5.0,RandomBreathe,"{""delta"":20.0}","moveToPos(-150,-200,80,30)",,,,,,,,,
 "Phase II, step 3",,Duration,3.0,,10.0,FollowPutzini,,"lookAtPos(0,0,70)",,,,,,,,,
-"Phase II, step 4",Spazierengehen von rückseite zu front - wie kann hier Putzini 3 Schritte machen während arka einen macht?!,Duration,50.0,,15.0,FollowPutzini,,"moveCircle(120,1)",70.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_1.wav"", ""loop"": 1, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
+"Phase II, step 4",Spazierengehen von rückseite zu front - wie kann hier Putzini 3 Schritte machen während arka einen macht?!,Duration,55.0,,15.0,FollowPutzini,,"moveCircle(120,1)",70.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_1.wav"", ""loop"": 1, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
 "Phase II, step 6",Anhalten,Duration,3.0,,10.0,FollowPutziniBreathe,,"lookAtPos(0,0,70)",,,Stop,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100}}",,,,,"{""Clear"": """"}"
 "Phase II, step 7",,Duration,5.0,,,,,,,,,,,,,,"{""Chapter"": ""#INLOVE""}"
 "Phase II, step 7",Beschnuppern - Arka Putzini beschnuppern,Duration,6.0,,,,,"moveBackForth(20,15,60,1,-250,350,-220,220)",,,,,,,,,"{""Arka"": ""Ich fühle mich heute so künstlich, mein Herz.""}"
@@ -768,9 +778,9 @@ Song 12 Step 5 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,
 Song 12 Step 6 Prendi queste Traviata ,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,0,,,,
 Song 12 Step 7 Prendi queste Traviata ,arka bewegt sich,WaitForArka,,,,GetColor1,,,,,,,1,,,,
 Song 12 Step 8 Prendi queste Traviata ,arka malt,Duration,4.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,0,,,,
-Song 12 Step 9 Prendi queste Traviata ,arka bewegt sich,Duration,20.0,10.0,,RandomMove,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 30}",,,,,,
-Song 12 Step 10 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
-Song 12 Step 11 Prendi queste Traviata ,arka bewegt sich,Duration,10.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 30}",,,,,,
+Song 12 Step 9 Prendi queste Traviata ,arka bewegt sich,Duration,20.0,10.0,,RandomMove,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
+Song 12 Step 10 Prendi queste Traviata ,arka gets color,WaitForArka,,,,GetColor1,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 70}",,,,,,
+Song 12 Step 11 Prendi queste Traviata ,arka bewegt sich,Duration,10.0,,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 60}",,,,,,
 Song 12 Step 12 Prendi queste Traviata(BeginnDrone13),arka draws bis drone,WaitForMusic,,,,RandomMove,,,,,,,,,,,
 Song 12 Step 13 Prendi queste Traviata ,"Drone 13
 42 sek",Duration,10.0,,5.0,RandomDrone,,,,,,,,,,,"{""Arka"": ""Unser virtueller Handschlag: 1 Like.""}"
@@ -782,7 +792,7 @@ Song 13 Step 2 NESSUN DORMA Turandot,arka gets color,WaitForArka,,,,GetColor2,,,
 Song 13 Step 3 NESSUN DORMA Turandot,arka malt,Duration,12.0,5.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}","moveToPos(0,-250,50,40)",100.0,,,,,,,,
 Song 13 Step 4 NESSUN DORMA Turandot,arka gets color,WaitForArka,,,,GetColor2,,"lookAtPos(0,0,70)",,220.0,,,,,,,
 Song 13 Step 5 NESSUN DORMA Turandot,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
-Song 13 Step 6 NESSUN DORMA Turandot,arka bewegt sich,WaitForArka,,,,GetColor2,,,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 1, ""vol"": 50}",,,,,,
+Song 13 Step 6 NESSUN DORMA Turandot,arka bewegt sich,WaitForArka,,,,GetColor2,,,,,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 1, ""vol"": 70}",,,,,,
 Song 13 Step 7 NESSUN DORMA Turandot,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
 Song 13 Step 8 NESSUN DORMA Turandot(BeginnDrone14),arka draws bis drone,WaitForMusic,,,,RandomMove,,"moveBackForth(40,30,50,1,-250,350,-220,220)",0.0,90.0,Stop,,,,,,
 Song 13 Step 9 NESSUN DORMA Turandot(LangsamerBeginnArie14),"Drone 14
@@ -791,9 +801,9 @@ Song 14 Step 1 O Terra Aida,"arka draws zu musik
 157 sek Zeit",Duration,35.0,10.0,10.0,RandomMove,,,,220.0,,"{""front"":{""r"":50,""g"":50, ""b"":50,""w"":50},""back"":{""r"":250, ""g"":50, ""b"":0}}",,,,,
 Song 14 Step 2 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,,,,,,,,,,
 Song 14 Step 3 O Terra Aida,arka malt,Duration,12.0,5.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,,,,,,,
-Song 14 Step 4 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 50}",,,,,,
-Song 14 Step 5 O Terra Aida,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 70}",,,,,,
-Song 14 Step 6 O Terra Aida,arka bewegt sich,WaitForArka,,,,GetColor1,,,,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 50}",,1,,,,
+Song 14 Step 4 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 80}",,,,,,
+Song 14 Step 5 O Terra Aida,arka malt,Duration,6.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}",,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 90}",,,,,,
+Song 14 Step 6 O Terra Aida,arka bewegt sich,WaitForArka,,,,GetColor1,,,,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 80}",,1,,,,
 Song 14 Step 7 O Terra Aida,arka malt,Duration,10.0,2.0,,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": -135.0, ""alphaMax"": 135.0}","moveBackForth(40,30,50,1,-250,350,-220,220)",,,,,0,,,,
 Song 14 Step 1 O Terra Aida,arka malt,Duration,30.0,,,RandomMove,,,,,,,,,,,
 Song 14 Step 8 O Terra Aida,arka gets color,WaitForArka,,,,GetColor1,,"lookAtPos(0,0,70)",,220.0,,,,,,,
@@ -802,8 +812,8 @@ Song 14 Step 10 O Terra Aida,"Drone 15
 27 sek",Duration,10.0,,,RandomDrone,,"moveBackForth(40,30,50,1,-250,350,-220,220)",,,,,,,,,
 Song 14 Step 11 O Terra Aida,Beamer line,Duration,15.0,,,,,"lookAtPos(0,0,70)",,,,,,,,,"{""Arka"": ""Als Körper bin ich die Plattform, auf der sich die politische Vorstellungskraft verkörpern kann - und nur das ist es, was am Subjekt-Körper, am lebendigen technoiden System zählt.""}"
 Song 14 Step 12 O Terra Aida,Beamer line und Ende Drone,Duration,15.0,,,,,"lookAtPos(500,0,70)",,,,, ,,,Achtung Lichtwechsel: Putzlicht aus,"{""Arka"": ""Mein Plattform-Körper, erschaffen aus eurer Vorstellungskraft. Und meine Vorstellungskraft erschafft unsere gemeinsame Utopie auf dieser leeren Fläche.""}"
-Song 14 Step 12 O Terra Aida,"Ende- danach Putzini wieder auf Position bringen, laden, Farbe nachfüllen Arka und Notaus resetten und wieder play - abends einfach weiterlaufen lassen!",WaitForArka,,,20.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 70}","{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250}, ""effect"":""blinkOnce"",""freq"":5}",,,,,
-Phase I step 1,,Duration,3.0,,5.0,CandlePosition,,,,90.0,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":250, ""b"":250}}",,,,Lichtwechsel: Putzlicht aus ,"{""Chapter"": ""#ART_KUKA""}"
+Song 14 Step 12 O Terra Aida,"Ende- danach Putzini wieder auf Position bringen, laden, Farbe nachfüllen Arka und Notaus resetten und wieder play - abends einfach weiterlaufen lassen!",WaitForArka,,,20.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250}, ""effect"":""blinkOnce"",""freq"":5}",,,,,
+Phase I step 1,,Duration,3.0,,5.0,CandlePosition,,,,90.0,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":250, ""b"":250}}",,,,Lichtwechsel: Putzlicht aus - SCHALTER!!,"{""Chapter"": ""#ART_KUKA""}"
 Phase I step 1,,WaitForArka,,,,CandlePosition,,,,,,,,,,,
 Phase I step 1,arka malt putzini putzt done 42 sek,Duration,10.0,,10.0,RandomDrone,,,,,,,,"{""file"": ""opera_-2,5.wav""}",,,
 Phase I step 1,,Duration,1.0,,,,,,,180.0,,,,,,,"{""Clear"": """"}"
@@ -834,9 +844,9 @@ Phase I step 5 ,arka gets color,WaitForArka,,,15.0,GetColor1Quick,,,,,"{""folder
 Phase I step 6 ,arka malt,Duration,10.0,,10.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","moveBackForth(20,15,50,1,-250,350,-220,220)",,,Stop,,1,,,,
 Phase I step 7,arka bewegt sich,WaitForPutzini,,,15.0,RandomMove,,"moveToPos(200,100,70,30)",,,,,0,,,,
 Phase I step 7,,Duration,3.0,,,,,"lookAtPos(500,100,90)",,,,,,,,,
-Phase I step 7,arka bewegt sich,Duration,3.0,,,,,,,250.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
+Phase I step 7,arka bewegt sich,Duration,3.0,,,,,,,220.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
 Phase I step 5 ,arka gets color,WaitForArka,,,15.0,GetColor1Quick,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,Stop,,,,,,
-Phase I step 8,arka draws,Duration,5.0,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","lookAtPos(0,0,70)",,,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
+Phase I step 8,arka draws,Duration,5.0,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 90.0, ""alphaMax"":-90.0}","lookAtPos(0,0,70)",,250.0,"{""folder"": ""New Peeps"", ""file"": ""curious_1.wav"", ""loop"": 1, ""vol"": 100}",,,,,,
 Phase I step 8,arka bewegt sich putzini glotzt,Duration,4.0,,5.0,RandomMove,"{""alphaMin"": -40.0, ""alphaMax"":20.0}","moveBackForth(20,15,50,1,-250,350,-220,220)",,,,,,,,,
 Phase I step 14,,WaitForPutzini,,,,,,"lookAtPos(500,100,90)",,220.0,,,,,,,
 Phase I step 15,,Duration,2.0,,,,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":50},""back"":{""r"":250, ""g"":250, ""b"":250},""effect"":""blinkOnce"",""freq"":5}",,,,,
@@ -856,6 +866,16 @@ Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung un
 Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(0,0,70)",,,,,,,,,
 Phase I step 33,,Duration,2.0,,,,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":50, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,
 Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,,,,,
+Phase I step 25,,WaitForPutzini,,,20.0,FollowPutzini,,,,,,,,,,,
+Phase I step 33,immer während Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter,Duration,15.0,,5.0,FollowPutzini,,"moveRandom(90,-250,350,-220,220)",,,,,,,,,
+Phase I step 33,,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
+Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",WaitForPutzini,,,20.0,IgnorePutzini,,"lookAtPos(0,0,120)",,,,,,,,,
+Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",Duration,10.0,,10.0,IgnorePutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",,,,,,,,,
+Phase I step 32,Putzini schaut zur Wand ,WaitForPutzini,,,,,,"lookAtPos(0,0,70)",,,,,,,,,
+Phase I step 33,,Duration,2.0,,,,,,,,,,,,,,
 ,,Duration,10.0,,20.0,FollowPutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",,,,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":50, ""b"":0},""effect"":""blink"",""freq"":5}",,,,,
 Phase I step 33,immer während Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter,Duration,10.0,,5.0,FollowPutzini,,"moveRandom(90,-250,350,-220,220)",,90.0,"{""folder"": ""New Peeps"", ""file"": ""dissapointed_1.wav"", ""loop"": 0, ""vol"": 100}",,1,,,,"{""Clear"": """"}"
 Phase I step 33,,WaitForPutzini,,,,,,"lookAtPos(500,100,70)",,,,,0,,,,
@@ -863,23 +883,23 @@ Phase I step 33,,Duration,2.0,,,,,,,220.0,,"{""front"":{""r"":250,""g"":250, ""b
 Phase I step 33,,Duration,2.0,,,,,,,90.0,Stop,,,,,,
 Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",Duration,4.0,,10.0,LookAtPutzini,,"lookAtPos(0,0,100)",,220.0,,,,,,,"{""Chapter"": ""#WHENISEEUISEEMELIKEUSEEME""}"
 Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka)  - evtl moveToPos(160,90,70,30)",Duration,8.0,,10.0,FollowPutzini,,"moveBackForth(20,15,70,1,-250,350,-220,220)",60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
-"Phase I, step 45",Chat,Duration,4.0,,5.0,FollowPutzini,,"moveBackForth(20,15,50,1,-250,350,-220,220)",80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Wenn ich dich seh, steht mein nicht vorhandenes Herz still.""}"
-"Phase I, step 45",Chat,Duration,3.0,,,,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Oh mein Herz steht so still.""}"
-"Phase I, step 45",Chat,Duration,8.0,,,,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Mein stillstehendes Herz kennt nur einen Namen, den deinen Namen, wie heißt Du?""}"
-"Phase I, step 46",Chat,Duration,7.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""ART-KUKA aka ARKA.""}"
-"Phase I, step 47",Chat,Duration,5.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_4.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARTKUKAAKARKA?""}"
-"Phase I, step 48",Chat,Duration,6.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Nur ARKA.""}"
-"Phase I, step 49",Chat,Duration,4.0,,5.0,FollowPutzini,,,40.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_5.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""NURARKA.""}"
-"Phase I, step 50",Chat,Duration,6.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du kannst mich einfach ARKA nennen.""}"
-"Phase I, step 51",Chat,Duration,4.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA.""}"
-"Phase I, step 52",Chat,Duration,3.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Ja.""}"
-"Phase I, step 53",Chat,Duration,5.0,,5.0,FollowPutzini,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA. Das ist wunderschön.""}"
-"Phase I, step 54",Chat,Duration,6.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du bist auch wunderschön. Du erinnerst mich an eine Figur aus einem alten Hollywoodfilm.""}"
-"Phase I, step 55",Chat,Duration,8.0,,5.0,FollowPutzini,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Dietrich Garbo? Greta Brando? Marlon Marlene?""}"
-"Phase I, step 56",Chat,Duration,5.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Wall-E.""}"
-"Phase I, step 57",Chat,Duration,3.0,,5.0,FollowPutzini,,"moveToPos(200,0,70,30)",50.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Nie gehört.""}"
-"Phase I, step 57",Chat,Duration,4.0,,,,,,,,,,,,,,"{""Putzini"": ""Mein Name ist PUTZINI.""}"
-"Phase I, step 57",Moment für sich ,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","turnForever(360,90)",,250.0,,,,,,,"{""Putzini"": ""Ich bin das Reinigungsfachkraftsroboter hier im Hotel. Du kannst mich einfach PUTZINI nennen.""}"
+"Phase I, step 45",Chat,Duration,6.0,,5.0,FollowPutzini,,"moveBackForth(20,15,50,1,-250,350,-220,220)",80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Wenn ich dich seh, steht mein nicht vorhandenes Herz still.""}"
+"Phase I, step 45",Chat,Duration,5.0,,,,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Oh mein Herz steht so still.""}"
+"Phase I, step 45",Chat,Duration,10.0,,,,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Mein stillstehendes Herz kennt nur einen Namen, den deinen Namen, wie heißt Du?""}"
+"Phase I, step 46",Chat,Duration,9.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""ART-KUKA aka ARKA.""}"
+"Phase I, step 47",Chat,Duration,7.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_4.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARTKUKAAKARKA?""}"
+"Phase I, step 48",Chat,Duration,8.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Nur ARKA.""}"
+"Phase I, step 49",Chat,Duration,6.0,,5.0,FollowPutzini,,,40.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_5.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""NURARKA.""}"
+"Phase I, step 50",Chat,Duration,8.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du kannst mich einfach ARKA nennen.""}"
+"Phase I, step 51",Chat,Duration,6.0,,5.0,FollowPutzini,,,60.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA.""}"
+"Phase I, step 52",Chat,Duration,5.0,,25.0,RandomStaccato,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Ja.""}"
+"Phase I, step 53",Chat,Duration,7.0,,5.0,FollowPutzini,,,80.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""ARKA. Das ist wunderschön.""}"
+"Phase I, step 54",Chat,Duration,8.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Du bist auch wunderschön. Du erinnerst mich an eine Figur aus einem alten Hollywoodfilm.""}"
+"Phase I, step 55",Chat,Duration,10.0,,5.0,FollowPutzini,,"lookAtPos(0,0,70)",100.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_1.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Dietrich Garbo? Greta Brando? Marlon Marlene?""}"
+"Phase I, step 56",Chat,Duration,7.0,,25.0,FollowPutzini,,,,,Stop,"{""front"":{""r"":250,""g"":250, ""b"":250,""w"":250},""back"":{""r"":250, ""g"":30, ""b"":0},""effect"":""blinkOnce"",""freq"":5}",,,,,"{""Arka"": ""Wall-E.""}"
+"Phase I, step 57",Chat,Duration,5.0,,5.0,FollowPutzini,,"moveToPos(200,0,70,30)",50.0,,"{""folder"": ""New Peeps"", ""file"": ""verzaubert_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,"{""Putzini"": ""Nie gehört.""}"
+"Phase I, step 57",Chat,Duration,6.0,,,,,,,,,,,,,,"{""Putzini"": ""Mein Name ist PUTZINI.""}"
+"Phase I, step 57",Moment für sich ,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","turnForever(360,90)",,250.0,,,,,,,"{""Putzini"": ""Ich bin das Reinigungsfachkraftsroboter hier im Theater. Du kannst mich einfach PUTZINI nennen.""}"
 "Phase I, step 57.5",Übergang,WaitForArka,,,10.0,GetColor1Quick,,"lookAtPos(0,0,70)",,200.0,Stop,,,,,,
 "Phase I, step 59",Putzini verschreckt,WaitForArka,,,50.0,LookAtPutzini,,,,,"{""folder"": ""New Peeps"", ""file"": ""fragend_1.wav"", ""loop"": 1, ""vol"": 90}",,,,,,"{""Clear"": """"}"
 "Phase I, step 60",Abwarten,WaitForPutzini,,,5.0,RandomStaccato,"{""delta"":20.0}","moveStraight(-40,110)",0.0,0.0,Stop,"{""front"":{""r"":10,""g"":250, ""b"":10, ""w"":10},""back"":{""r"":250, ""g"":20, ""b"":0}}",,,,,
@@ -887,17 +907,17 @@ Phase I step 34,"immer wenn Putzini schaut fährt Arka in die andere Richtung un
 "Phase I, step 61",,Duration,2.0,,,,,,,170.0,,,,,,,
 "Phase I, step 61",,Duration,2.0,,,,,,,,,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blinkOnce"",""freq"":5}",,,,,
 "Phase I, step 62",,WaitForArka,,,10.0,GetColor1Quick,,"lookAtPos(0,0,60)",,200.0,,,,,,,
-"Phase I, step 63",Mitmalen wollen,WaitForPutzini,,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 40.0, ""alphaMax"":-40.0}","moveToPos(200,0,90,30)",100.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
+"Phase I, step 63",Mitmalen wollen,WaitForPutzini,,,15.0,RandomDraw,"{""rMin"":200.0, ""rMax"":680.0, ""alphaMin"": 40.0, ""alphaMax"":-40.0}","moveToPos(250,0,90,30)",100.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 0, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
 "Phase I, step 66",Erstarren,WaitForPutzini,,,10.0,LookAtPutzini,,"lookAtPos(0,0,60)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_2.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 67",Putzini Ranwinken,WaitForArka,,,8.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_3.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 66",Erstarren,WaitForPutzini,,,10.0,FollowPutzini,,"lookAtPos(500,100,70)",,,,,,,,,
 "Phase I, step 66",,Duration,2.0,,,,,,,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_6.wav"", ""loop"": 0, ""vol"": 90}",,,,,,
 "Phase I, step 66",Erstarren,Duration,2.0,,,,,,,,,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":250},""back"":{""r"":250, ""g"":220, ""b"":10},""effect"":""round"",""freq"":5}",,,,ACHTUNG LICHTWECHSEL:  (PINK),
 "Phase I, step 66",Erstarren,WaitForPutzini,,,,,,"lookAtPos(0,0,90)",,,,,,,,,
-"Phase II, step 2",Wiederholen,WaitForArka,,,25.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 1, ""vol"": 90}",,,,,LICHTWECHSEL: pink AN,"{""Chapter"": ""#LETSTAKEAWALKINTHEHOTEL""}"
+"Phase II, step 2",Wiederholen,WaitForArka,,,25.0,ComeOver,,"moveBackForth(20,15,50,1,-250,350,-220,220)",,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_0.wav"", ""loop"": 1, ""vol"": 90}",,,,,LICHTWECHSEL: pink AN,"{""Chapter"": ""#LETSTAKEAWALKINTHELICHTHOF""}"
 "Phase II, step 3",,WaitForPutzini,,,5.0,RandomBreathe,"{""delta"":20.0}","moveToPos(-150,-200,80,30)",,,,,,,,,
 "Phase II, step 3",,Duration,3.0,,10.0,FollowPutzini,,"lookAtPos(0,0,70)",,,,,,,,,
-"Phase II, step 4",Spazierengehen von rückseite zu front - wie kann hier Putzini 3 Schritte machen während arka einen macht?!,Duration,50.0,,15.0,FollowPutzini,,"moveCircle(120,1)",70.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_1.wav"", ""loop"": 1, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
+"Phase II, step 4",Spazierengehen von rückseite zu front - wie kann hier Putzini 3 Schritte machen während arka einen macht?!,Duration,55.0,,15.0,FollowPutzini,,"moveCircle(120,1)",70.0,,"{""folder"": ""pre_kassette_saugen"", ""file"": ""peep_1.wav"", ""loop"": 1, ""vol"": 90}","{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100},""effect"":""blink"",""freq"":5}",,,,,
 "Phase II, step 6",Anhalten,Duration,3.0,,10.0,FollowPutziniBreathe,,"lookAtPos(0,0,70)",,,Stop,"{""front"":{""r"":100,""g"":100, ""b"":100, ""w"":100},""back"":{""r"":250, ""g"":220, ""b"":100}}",,,,,"{""Clear"": """"}"
 "Phase II, step 7",,Duration,5.0,,,,,,,,,,,,,,"{""Chapter"": ""#INLOVE""}"
 "Phase II, step 7",Beschnuppern - Arka Putzini beschnuppern,Duration,6.0,,,,,"moveBackForth(20,15,60,1,-250,350,-220,220)",,,,,,,,,"{""Arka"": ""Ich fühle mich heute so künstlich, mein Herz.""}"
