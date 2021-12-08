@@ -27,6 +27,7 @@ class PutziniConfig:
         self.marker_map = 'markerset.yml'
         self.camera_calib = 'microsoft.yml'
         self.log_to_mqtt = True
+        self.cam_init_command = 'v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=3'
         try:
             self.from_yaml()
         except FileNotFoundError:

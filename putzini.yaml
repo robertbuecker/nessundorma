@@ -27,3 +27,4 @@ marker_map: lichthof.yml
 log_to_mqtt: false
 # camera_calib: calib_usbgs/usbgs.yml
 camera_calib: microsoft.yml
+cam_init_command: "v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=3"

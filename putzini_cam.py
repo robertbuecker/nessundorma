@@ -8,6 +8,7 @@ from sys import argv
 import os
 import time
 import logging
+import subprocess
 
 import numpy as np
 
@@ -40,7 +41,9 @@ class PutziniCam:
         self.t_last_angle = -1.
         self.position = self.RT_rp[:3,-1]
         self.alpha = np.array([0., 0., 0.])
-        self.timestamp = time.time()       
+        self.timestamp = time.time()    
+        self.logger.info('Running cam settings command %s', self.config.cam_init_command)
+        subprocess.run(self.config.cam_init_command.split(' '), check=True)
 
     def init_reference_system(self):
         # reference as seen from ArUco system. The flip of the z axis (180 deg around y)

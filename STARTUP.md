@@ -99,7 +99,6 @@ The next step depends on whether Putzini is already running (see above) or you s
 Now, run
 ```
 cd nessundorma
-v4l2-ctl -c focus_auto=0 -c brightness=30 -c contrast=10 -c sharpness=50 -c saturation=0 -c focus_absolute=21
 ./hover.py
 ``` 
 ...it will now print a lot of status messages, run some tests, drive the neck down to zero position, do a quick nod with the head, reset the LEDs etc. Finally, you should see Putzini's position and direction properly in the graphical status window that you started above. Putzini is now ready to go!
