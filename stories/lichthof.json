@@ -4525,7 +4525,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 30
+            "vol": 50
           },
           "lamp": null,
           "vacuum": null
@@ -4558,7 +4558,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 70
           },
           "lamp": null,
           "vacuum": null
@@ -4596,7 +4596,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 0,
-            "vol": 30
+            "vol": 60
           },
           "lamp": null,
           "vacuum": null
@@ -4911,7 +4911,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 1,
-            "vol": 50
+            "vol": 70
           },
           "lamp": null,
           "vacuum": null
@@ -5134,7 +5134,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 80
           },
           "lamp": null,
           "vacuum": null
@@ -5172,7 +5172,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 1,
-            "vol": 70
+            "vol": 90
           },
           "lamp": null,
           "vacuum": null
@@ -5205,7 +5205,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 80
           },
           "lamp": null,
           "vacuum": "1"
@@ -5448,7 +5448,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 70
+            "vol": 90
           },
           "lamp": {
             "front": {
@@ -5515,7 +5515,7 @@
           "Chapter": "#ART_KUKA"
         }
       },
-      "overallLight": "Lichtwechsel: Putzlicht aus "
+      "overallLight": "Lichtwechsel: Putzlicht aus - SCHALTER!!"
     },
     {
       "name": "Phase I step 1",
@@ -6494,7 +6494,7 @@
         "putzini": {
           "move": null,
           "height": null,
-          "head": 250,
+          "head": 220,
           "audio": {
             "folder": "New Peeps",
             "file": "curious_1.wav",
@@ -6560,7 +6560,7 @@
         "putzini": {
           "move": "lookAtPos(0,0,70)",
           "height": null,
-          "head": null,
+          "head": 250,
           "audio": {
             "folder": "New Peeps",
             "file": "curious_1.wav",
@@ -7232,6 +7232,286 @@
       "overallLight": null
     },
     {
+      "name": "Phase I step 25",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 20,
+          "sequencerType": "FollowPutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": "immer w\u00e4hrend Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter",
+      "terminationCondition": "Duration",
+      "duration": 15,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 5,
+          "sequencerType": "FollowPutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveRandom(90,-250,350,-220,220)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(500,100,70)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 34",
+      "comment": "immer wenn Putzini schaut f\u00e4hrt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 20,
+          "sequencerType": "IgnorePutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(0,0,120)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 34",
+      "comment": "immer wenn Putzini schaut f\u00e4hrt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",
+      "terminationCondition": "Duration",
+      "duration": 10,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 10,
+          "sequencerType": "IgnorePutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveBackForth(20,15,70,1,-250,350,-220,220)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 32",
+      "comment": "Putzini schaut zur Wand ",
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(0,0,70)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
       "name": null,
       "comment": null,
       "terminationCondition": "Duration",
@@ -7473,7 +7753,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7508,7 +7788,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7543,7 +7823,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 8,
+      "duration": 10,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7578,7 +7858,7 @@
       "name": "Phase I, step 46",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 7,
+      "duration": 9,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7622,7 +7902,7 @@
       "name": "Phase I, step 47",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7657,7 +7937,7 @@
       "name": "Phase I, step 48",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7701,7 +7981,7 @@
       "name": "Phase I, step 49",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7736,7 +8016,7 @@
       "name": "Phase I, step 50",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7780,7 +8060,7 @@
       "name": "Phase I, step 51",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7815,7 +8095,7 @@
       "name": "Phase I, step 52",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7859,7 +8139,7 @@
       "name": "Phase I, step 53",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7894,7 +8174,7 @@
       "name": "Phase I, step 54",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7938,7 +8218,7 @@
       "name": "Phase I, step 55",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 8,
+      "duration": 10,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -7973,7 +8253,7 @@
       "name": "Phase I, step 56",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -8017,7 +8297,7 @@
       "name": "Phase I, step 57",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -8052,7 +8332,7 @@
       "name": "Phase I, step 57",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -8105,7 +8385,7 @@
           "stop": null
         },
         "beamer": {
-          "Putzini": "Ich bin das Reinigungsfachkraftsroboter hier im Hotel. Du kannst mich einfach PUTZINI nennen."
+          "Putzini": "Ich bin das Reinigungsfachkraftsroboter hier im Theater. Du kannst mich einfach PUTZINI nennen."
         }
       },
       "overallLight": null
@@ -8359,7 +8639,7 @@
           }
         },
         "putzini": {
-          "move": "moveToPos(200,0,90,30)",
+          "move": "moveToPos(250,0,90,30)",
           "height": 100,
           "head": null,
           "audio": {
@@ -8620,7 +8900,7 @@
           "stop": null
         },
         "beamer": {
-          "Chapter": "#LETSTAKEAWALKINTHEHOTEL"
+          "Chapter": "#LETSTAKEAWALKINTHELICHTHOF"
         }
       },
       "overallLight": "LICHTWECHSEL: pink AN"
@@ -8687,7 +8967,7 @@
       "name": "Phase II, step 4",
       "comment": "Spazierengehen von r\u00fcckseite zu front - wie kann hier Putzini 3 Schritte machen w\u00e4hrend arka einen macht?!",
       "terminationCondition": "Duration",
-      "duration": 50,
+      "duration": 55,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -22939,7 +23219,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 30
+            "vol": 50
           },
           "lamp": null,
           "vacuum": null
@@ -22972,7 +23252,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 70
           },
           "lamp": null,
           "vacuum": null
@@ -23010,7 +23290,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 0,
-            "vol": 30
+            "vol": 60
           },
           "lamp": null,
           "vacuum": null
@@ -23325,7 +23605,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 1,
-            "vol": 50
+            "vol": 70
           },
           "lamp": null,
           "vacuum": null
@@ -23548,7 +23828,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 80
           },
           "lamp": null,
           "vacuum": null
@@ -23586,7 +23866,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 1,
-            "vol": 70
+            "vol": 90
           },
           "lamp": null,
           "vacuum": null
@@ -23619,7 +23899,7 @@
             "folder": "New Peeps",
             "file": "dissapointed_1.wav",
             "loop": 0,
-            "vol": 50
+            "vol": 80
           },
           "lamp": null,
           "vacuum": "1"
@@ -23862,7 +24142,7 @@
             "folder": "New Peeps",
             "file": "curious_1.wav",
             "loop": 0,
-            "vol": 70
+            "vol": 90
           },
           "lamp": {
             "front": {
@@ -23929,7 +24209,7 @@
           "Chapter": "#ART_KUKA"
         }
       },
-      "overallLight": "Lichtwechsel: Putzlicht aus "
+      "overallLight": "Lichtwechsel: Putzlicht aus - SCHALTER!!"
     },
     {
       "name": "Phase I step 1",
@@ -24908,7 +25188,7 @@
         "putzini": {
           "move": null,
           "height": null,
-          "head": 250,
+          "head": 220,
           "audio": {
             "folder": "New Peeps",
             "file": "curious_1.wav",
@@ -24974,7 +25254,7 @@
         "putzini": {
           "move": "lookAtPos(0,0,70)",
           "height": null,
-          "head": null,
+          "head": 250,
           "audio": {
             "folder": "New Peeps",
             "file": "curious_1.wav",
@@ -25646,6 +25926,286 @@
       "overallLight": null
     },
     {
+      "name": "Phase I step 25",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 20,
+          "sequencerType": "FollowPutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": "immer w\u00e4hrend Putzini zur Wand gedreht ist macht Arka die in Putzinis (aktuelle) Richtung suchende Bewegung weiter",
+      "terminationCondition": "Duration",
+      "duration": 15,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 5,
+          "sequencerType": "FollowPutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveRandom(90,-250,350,-220,220)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(500,100,70)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 34",
+      "comment": "immer wenn Putzini schaut f\u00e4hrt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 20,
+          "sequencerType": "IgnorePutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(0,0,120)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 34",
+      "comment": "immer wenn Putzini schaut f\u00e4hrt Arka in die andere Richtung und bleib dort (schaut weg, mit dem Anfang der bewegung vom Puzzini bewegt sich Arka) ",
+      "terminationCondition": "Duration",
+      "duration": 10,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": 10,
+          "sequencerType": "IgnorePutzini",
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "moveBackForth(20,15,70,1,-250,350,-220,220)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 32",
+      "comment": "Putzini schaut zur Wand ",
+      "terminationCondition": "WaitForPutzini",
+      "duration": null,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": "lookAtPos(0,0,70)",
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
+      "name": "Phase I step 33",
+      "comment": null,
+      "terminationCondition": "Duration",
+      "duration": 2,
+      "deltaDuration": null,
+      "parameter": {
+        "arka": {
+          "speed": null,
+          "sequencerType": null,
+          "sequencerParams": null
+        },
+        "putzini": {
+          "move": null,
+          "height": null,
+          "head": null,
+          "audio": null,
+          "lamp": null,
+          "vacuum": null
+        },
+        "player": {
+          "play": null,
+          "stop": null
+        },
+        "beamer": null
+      },
+      "overallLight": null
+    },
+    {
       "name": null,
       "comment": null,
       "terminationCondition": "Duration",
@@ -25887,7 +26447,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -25922,7 +26482,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -25957,7 +26517,7 @@
       "name": "Phase I, step 45",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 8,
+      "duration": 10,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -25992,7 +26552,7 @@
       "name": "Phase I, step 46",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 7,
+      "duration": 9,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26036,7 +26596,7 @@
       "name": "Phase I, step 47",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26071,7 +26631,7 @@
       "name": "Phase I, step 48",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26115,7 +26675,7 @@
       "name": "Phase I, step 49",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26150,7 +26710,7 @@
       "name": "Phase I, step 50",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26194,7 +26754,7 @@
       "name": "Phase I, step 51",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26229,7 +26789,7 @@
       "name": "Phase I, step 52",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26273,7 +26833,7 @@
       "name": "Phase I, step 53",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26308,7 +26868,7 @@
       "name": "Phase I, step 54",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 6,
+      "duration": 8,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26352,7 +26912,7 @@
       "name": "Phase I, step 55",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 8,
+      "duration": 10,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26387,7 +26947,7 @@
       "name": "Phase I, step 56",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 5,
+      "duration": 7,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26431,7 +26991,7 @@
       "name": "Phase I, step 57",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 3,
+      "duration": 5,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26466,7 +27026,7 @@
       "name": "Phase I, step 57",
       "comment": "Chat",
       "terminationCondition": "Duration",
-      "duration": 4,
+      "duration": 6,
       "deltaDuration": null,
       "parameter": {
         "arka": {
@@ -26519,7 +27079,7 @@
           "stop": null
         },
         "beamer": {
-          "Putzini": "Ich bin das Reinigungsfachkraftsroboter hier im Hotel. Du kannst mich einfach PUTZINI nennen."
+          "Putzini": "Ich bin das Reinigungsfachkraftsroboter hier im Theater. Du kannst mich einfach PUTZINI nennen."
         }
       },
       "overallLight": null
@@ -26773,7 +27333,7 @@
           }
         },
         "putzini": {
-          "move": "moveToPos(200,0,90,30)",
+          "move": "moveToPos(250,0,90,30)",
           "height": 100,
           "head": null,
           "audio": {
@@ -27034,7 +27594,7 @@
           "stop": null
         },
         "beamer": {
-          "Chapter": "#LETSTAKEAWALKINTHEHOTEL"
+          "Chapter": "#LETSTAKEAWALKINTHELICHTHOF"
         }
       },
       "overallLight": "LICHTWECHSEL: pink AN"
@@ -27101,7 +27661,7 @@
       "name": "Phase II, step 4",
       "comment": "Spazierengehen von r\u00fcckseite zu front - wie kann hier Putzini 3 Schritte machen w\u00e4hrend arka einen macht?!",
       "terminationCondition": "Duration",
-      "duration": 50,
+      "duration": 55,
       "deltaDuration": null,
       "parameter": {
         "arka": {
