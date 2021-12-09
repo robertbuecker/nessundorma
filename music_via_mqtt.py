@@ -16,6 +16,7 @@ import asyncio_mqtt as mqtt
 from putzini_config import PutziniConfig
 import logging
 import os
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -106,9 +107,17 @@ class MusicPlayer:
 
 
 ## FROM HERE: ACTUAL SINGING
-async def main():
+async def main(dev_name):
 
     config = PutziniConfig()
+    try:
+        # Activate the proper sound device
+        logger.info('Activating sound device: %s', dev_name)
+        assert subprocess.run(['pactl', 'set-default-sink', 
+        dev_name]).returncode == 0
+    except:
+        logger.error('Could not initialize sound device %s', dev_name)
+            
     async with mqtt.Client(config.mqtt_broker) as client:
         player = MusicPlayer(client)
         player.start()
@@ -119,5 +128,5 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()      
     # loop.set_debug(True)
-    loop.run_until_complete(main())
+    loop.run_until_complete(main(dev_name='alsa_output.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.analog-stereo'))
     loop.close()
