@@ -257,7 +257,7 @@ class PutziniNav2:
                     # only recalibrate if deviation is large and quality of camera signal is good, that is,
                     # a minimum number of detected markers and a maximum out-of-plane tilt (which usually means something is off)
                     # TODO: include minimum (and maximum?) sensor_deviation criterion
-                    do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= 2) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
+                    do_recalib = (abs(d_alpha_cam) > 5) and (self.cam.detected >= (1 if self.state.action == 'Idle' else 2)) and (np.max(np.abs(self.cam.alpha[:2])) < 20)
                 else:
                     do_recalib, sensor_deviation, d_alpha_cam, sensor_cam_offset = True, 180, 0, 0
 
