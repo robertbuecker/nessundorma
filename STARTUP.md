@@ -10,13 +10,17 @@
 
 ## ARKA computer switch on
 
-If not running, switch on the large MacBook Pro. User `markus`, pw `foobar2342..` (including the dots).
+If not running, switch on the main control computer. User `?`, pw `lovearka`.
+Start the ARKA software (Desktop shortcut).
 
+**ALL OF THE REST OF ARKA IS OUTDATED, REWRITE IT FOR THE NEW PC**
+
+<!-- OUTDATED
 If not already running, start the Unity software:
 - start unity hub from the taskbar shortcut, load project `ArkaTest19`. It will likely show an error about window layout. **DO NOT CHOOSE 'STANDARD LAYOUT'**. Instead, just quit.
 - repeat. Second time will work.
 - Click "Play" button on top center.
-- The ARKA user interface should appear now
+- The ARKA user interface should appear now -->
 
 If required (that is, if the show sequence on Google Docs has changed):
 - Start a command prompt terminal (CMD in search field or shortcut on taskbar)
@@ -36,7 +40,7 @@ If required (that is, if the show sequence on Google Docs has changed):
     ```
 - Hamburg Lichthof:
     ```
-    ./tbl2json.py https://docs.google.com/spreadsheets/d/13pzQDcK9F0rRs--ez4dizz0PzOLN1q42P2OMkCMyLvw stories/lichthof.json
+    0.5
     ```
 
   Load the show into the main Arka sequencer in the interface on the left side on the second tab from the right.
@@ -49,6 +53,9 @@ If required (that is, if the show sequence on Google Docs has changed):
 - Switch on the drive board (lower push button: "upwards pitched" sound!)
 
 ## Putzini and music computer
+
+**ALL OF THIS IS OUTDATED, THIS IS NOW HAPPENING ON THE MAIN COMPUTER AND/OR THE RASPI 4**
+
 If not running, start small MacBook Pro. user `antonie`, pw `20L07`.
 - Make sure it is connected to the `NESSUN DORMA` WiFi network.
 - If using Bluetooth to transmit the music, check that Bluetooth is connected to `blueLino 4G+`, and that the sound output (`alt-Click` on sound level control) is set to `blueLino 4G+`.
@@ -108,6 +115,9 @@ cd nessundorma
 ...it will now print a lot of status messages, run some tests, drive the neck down to zero position, do a quick nod with the head, reset the LEDs etc. Finally, you should see Putzini's position and direction properly in the graphical status window that you started above. Putzini is now ready to go!
 
 ## Projector
+
+**ALSO OUTDATED, PROJECTOR IS NOW CONNECTED TO RASPI 4**
+
 The Raspberry Pi (the black one with "TOTO.io" on it) should automatically switch on and be properly configured... mostly (see below). Best is to always leave it running, then you have no reason to worry.
 You can try if it all works by clicking the buttons corresponding to the different roles in Arka's control window on the left side, in the rightmost tab.
 Make sure you see the dialogue messages on the projector, and that the sounds come from the Raspberry Pi's output (which, obviously, you will need to connect first).
