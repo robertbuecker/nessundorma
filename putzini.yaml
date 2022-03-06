@@ -1,6 +1,6 @@
-anchor_names: !!python/tuple [6DE8, B4DE, B4D3, B4E7]
-anchor_x: !!python/tuple [400, -430, -430, 400]
-anchor_y: !!python/tuple [-410, -410, 410, 410]
+anchor_names: !!python/tuple [B4E7, 6DE8, B4D3, B4DE]
+anchor_x: !!python/tuple [225, -400, -400, 225]
+anchor_y: !!python/tuple [-437, -437, 437, 437]
 distance_factors: [0.95, 0.97, 0.97, 0.95]
 arka_radius: 100
 use_bno055: true
@@ -11,7 +11,7 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 977
 cam_rotation: 92
-keepout_img: lichthof.tiff
+keepout_img: chur.tiff
 max_distance: 1000
 minimum_calib_level: 0
 mqtt_broker: 172.31.1.150
@@ -23,7 +23,7 @@ range_y: !!python/tuple [-300, 300]
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 210, 163, 0, -160, -210, -160]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
-marker_map: lichthof.yml
+marker_map: chur.yml
 log_to_mqtt: false
 # camera_calib: calib_usbgs/usbgs.yml
 camera_calib: microsoft.yml
