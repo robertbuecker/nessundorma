@@ -1,7 +1,7 @@
-anchor_names: !!python/tuple [B4E7, 6DE8, B4D3, B4DE]
-anchor_x: !!python/tuple [225, -400, -400, 225]
-anchor_y: !!python/tuple [-437, -437, 437, 437]
-distance_factors: [0.95, 0.97, 0.97, 0.95]
+anchor_names: !!python/tuple [B4DE, 6DE8, B4D9, B4D3]
+anchor_x: !!python/tuple [450, -450, -450, 450]
+anchor_y: !!python/tuple [-450, -450, 450, 450]
+distance_factors: [0.93, 0.93, 0.93, 0.93]
 arka_radius: 100
 use_bno055: true
 bno055_calib:
@@ -10,7 +10,7 @@ bno055_calib:
   off_mag: !!python/tuple [463, 361, -4]
   rad_acc: 1000
   rad_mag: 977
-cam_rotation: 92
+cam_rotation: 180
 keepout_img: chur.tiff
 max_distance: 1000
 minimum_calib_level: 0
@@ -23,8 +23,8 @@ range_y: !!python/tuple [-300, 300]
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 210, 163, 0, -160, -210, -160]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
-marker_map: chur.yml
+marker_map: magdeburg.yml
 log_to_mqtt: false
 # camera_calib: calib_usbgs/usbgs.yml
 camera_calib: microsoft.yml
-cam_init_command: "v4l2-ctl -c focus_auto=0 -c saturation=0 -c contrast=10 -c brightness=30"
+cam_init_command: "v4l2-ctl -c focus_auto=0 -c backlight_compensation=0 -c saturation=0 -c contrast=0 -c brightness=30 -c exposure_auto=1"
