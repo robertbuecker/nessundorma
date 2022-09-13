@@ -298,8 +298,8 @@ class PutziniNav2:
 
             missing = np.isnan(self.distances).sum()
             
-            if missing > 0:
-                self.logger.warn('%s distance signals are missing', missing)
+            #if missing > 0:
+            #    self.logger.warn('%s distance signals are missing', missing)
 
             if (len(self.distances) - missing) < 3:
                 self.logger.error('Have less than three distance signals. Cannot determine position!')
