@@ -138,7 +138,7 @@ class PutziniDrive:
         if self.finished.done():
             self.finished = self.loop.create_future()
             
-    def move(self, dist, speed=60):
+    def move(self, dist, speed=90):
         if int(dist) < 0:
             speed *=-1
         self.set_speed_r(speed)
