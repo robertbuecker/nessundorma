@@ -1,5 +1,5 @@
 anchor_names: !!python/tuple [B4DE, 6DE8, B4D9, B4D3]
-anchor_x: !!python/tuple [450, -450, -450, 450]
+anchor_x: !!python/tuple [400, -500, -500, 400]
 anchor_y: !!python/tuple [-450, -450, 450, 450]
 distance_factors: [0.93, 0.93, 0.93, 0.93]
 arka_radius: 100
@@ -10,7 +10,7 @@ bno055_calib:
   off_mag: !!python/tuple [463, 361, -4]
   rad_acc: 1000
   rad_mag: 977
-cam_rotation: 90
+cam_rotation: 84
 keepout_img: magdeburg.tiff
 max_distance: 1000
 minimum_calib_level: 0
