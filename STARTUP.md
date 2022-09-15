@@ -142,6 +142,7 @@ You can check it in the Arka interface using the rightmost control tab ("clipboa
 ...using the graphical interface.
 
 # Shutdown
+
 ## Putzini shut-down
 
 For a graceful shutdown of Putzini, please do the following:
@@ -157,7 +158,12 @@ For a graceful shutdown of Putzini, please do the following:
   
 ## ARKA hardware switch off
 
-- Unity control software: click "disconnect" -> ARKA's socket turns orange on screen
+- **! important** remove brush from robot arm
+- make sure compressor is on and provides air pressure
+- boot PC and start `ND Sim`
+  - connect robot
+  - move robot to **transport position** (brush needs to detached!!!)
+- shutdown PC
 - SmartPad: 
   - turn key, set to T1, turn key back
   - Hit "User" button on the left column (lowest icon) -> Choose Administrator, pw `kuka` -> log on
@@ -165,6 +171,7 @@ For a graceful shutdown of Putzini, please do the following:
   - Wait until the screen goes black after 1-2 minutes.
 - Switch off power supply mains
 - Switch off compressor
+- detach all cables
 
 # Stuff needed for installation
 ## Aruco mapping
