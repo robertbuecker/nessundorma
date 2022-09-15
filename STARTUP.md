@@ -1,5 +1,18 @@
 # Startup 
 
+## Network Setup
+
+- power following devices:
+  - GL-Net router
+  - Switch
+  - RaspberryPi
+- connect network cables
+  - GL-Net Router (LAN) to switch
+  - GL-Net Router (WAN) to external Internet access
+  - PC - switch
+  - RasbperryPi to switch
+  - KRC (Port X66) to Switch
+
 ##  ARKA hardware switch on
 
 - Drain water from compressor and switch it on
