@@ -10,7 +10,7 @@ bno055_calib:
   off_mag: !!python/tuple [463, 361, -4]
   rad_acc: 1000
   rad_mag: 977
-cam_rotation: 84
+cam_rotation: 90
 keepout_img: adk.tiff
 max_distance: 1000
 minimum_calib_level: 0
