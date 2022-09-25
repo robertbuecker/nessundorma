@@ -434,7 +434,7 @@ class MainWindow(QtGui.QWidget):
         self.client.stateSignal.connect(self.on_stateSignal)
         self.client.logsSignal.connect(self.on_logsSignal)
         
-        self.client.hostname = putzini_config.mqtt_broker
+        self.client.hostname = self.opts.mqtt_broker
         self.client.connectToHost()
         
         self.keyPressEvent = self.key_pressed
