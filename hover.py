@@ -521,8 +521,9 @@ async def parse_json_commands(messages, putzini: Putzini):
 
 
 async def main():
+    config = PutziniConfig()
 
-    client = mqtt.Client("172.31.1.150")
+    client = mqtt.Client(config.mqtt_broker)
     
     putzini = Putzini(client)
 

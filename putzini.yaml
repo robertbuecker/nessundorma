@@ -10,11 +10,11 @@ bno055_calib:
   off_mag: !!python/tuple [463, 361, -4]
   rad_acc: 1000
   rad_mag: 977
-cam_rotation: 90
+cam_rotation: 270
 keepout_img: akademie.tiff
 max_distance: 1000
 minimum_calib_level: 0
-mqtt_broker: 172.31.1.150
+mqtt_broker: 172.31.1.141
 nav_avg_time: 1
 nav_update_rate: 20
 range_x: !!python/tuple [-300, 350]
