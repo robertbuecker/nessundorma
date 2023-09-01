@@ -14,7 +14,7 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 977
 cam_rotation: 90
-keepout_img: magdeburg.tiff
+keepout_img: leipzig.tiff
 max_distance: 1000
 minimum_calib_level: 0
 mqtt_broker: 172.31.1.150
