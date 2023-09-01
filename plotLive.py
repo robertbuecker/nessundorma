@@ -252,6 +252,9 @@ class MainWindow(QtGui.QWidget):
             self.anchors[lbl] = pg.ScatterPlotItem(size=10, symbol='o')
             self.pos_coord.addItem(self.anchors[lbl])
             self.anchors[lbl].addPoints(x=[x], y=[y], brush=None, pen='k', pxMode=False, size=10)
+            self.anchors[lbl+"x"] = pg.ScatterPlotItem(size=10, symbol='+')
+            self.pos_coord.addItem(self.anchors[lbl+"x"])
+            self.anchors[lbl+"x"].addPoints(x=[x], y=[y], pen='r', size=10)
         print(self.anchors)
         self.arka = pg.ScatterPlotItem(size=10, symbol='o', pxMode=False)
         # for lbl, x, y in zip(self.opts.anchor_names, self.opts.anchor_x, self.opts.anchor_y):
