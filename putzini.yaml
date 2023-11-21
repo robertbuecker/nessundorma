@@ -1,9 +1,7 @@
 #                             VL    HL    HR    VR
 anchor_names: !!python/tuple [B4DE, 6DE8, B4D9, B4D3]
-#anchor_x: !!python/tuple [400, -500, -500, 400]
-#anchor_y: !!python/tuple [-450, -450, 450, 450]
-anchor_x: !!python/tuple [366, -287, -287, 366]
-anchor_y: !!python/tuple [-312, -312, 290, 290]
+anchor_x: !!python/tuple [321, -335, -340, 321]
+anchor_y: !!python/tuple [-361, -361, 358, 358]
 distance_factors: [0.93, 0.93, 0.93, 0.93]
 arka_radius: 100
 use_bno055: true
@@ -14,7 +12,7 @@ bno055_calib:
   rad_acc: 1000
   rad_mag: 977
 cam_rotation: 270
-keepout_img: leipzig.tiff
+keepout_img: essen.tiff
 max_distance: 1000
 minimum_calib_level: 0
 mqtt_broker: 172.31.1.150
@@ -26,7 +24,7 @@ range_y: !!python/tuple [-300, 300]
 tag_name: B521
 waypoint_x: !!python/tuple [0, 163, 210, 163, 0, -160, -210, -160]
 waypoint_y: !!python/tuple [-230, -163, 0, 163, 230, 163, 0, -163]
-marker_map: leipzig.yml
+marker_map: essen.yml
 log_to_mqtt: false
 # camera_calib: calib_usbgs/usbgs.yml
 camera_calib: microsoft.yml
