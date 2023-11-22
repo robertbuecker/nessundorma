@@ -97,7 +97,7 @@ class TimedMessageDispatcher:
                 com_trig = self.trigger_q.popleft()
                 com_arm = self.arm_q.popleft()
                 self.logger.warning('(%.1f) Immediately answering %s due to deferred trigger %s', self.ela, com_arm, com_trig)
-                asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps({'action': 'Trigger'})))
+                asyncio.ensure_future(self.mqtt_client.publish('nd/music/state', json.dumps({'action': 'Trigger'})))
                 await asyncio.sleep(0.05)
             
             # this is SO tedious without pandas...
@@ -134,7 +134,7 @@ class TimedMessageDispatcher:
                     
                 if len(msg) > 0:
                     self.logger.debug('(%.1f) Sending message: %s', self.ela, msg)
-                    asyncio.ensure_future(self.mqtt_client.publish('music/state', json.dumps(msg)))
+                    asyncio.ensure_future(self.mqtt_client.publish('nd/music/state', json.dumps(msg)))
                     
                 else:
                     self.logger.info('(%.1f) Passed label %s without sending anything.', self.ela, event["comment"])

@@ -172,7 +172,7 @@ class MqttClient(QtCore.QObject):
         elif msg.topic == 'putzini/calibrated':
             calibrated = tuple(literal_eval(msg.payload.decode('utf-8')))
             self.calibratedSignal.emit(calibrated)
-        elif msg.topic == 'putzini/state':
+        elif msg.topic == 'nd/putzini/state':
             state = json.loads(msg.payload.decode('utf-8'))
             self.stateSignal.emit(state)
         elif msg.topic == 'putzini/command_state':
@@ -466,7 +466,7 @@ class MainWindow(QtGui.QWidget):
             self.client.subscribe("putzini/calibrated")
             self.client.subscribe("putzini/distances")
             self.client.subscribe("putzini/command_state")
-            self.client.subscribe("putzini/state")
+            self.client.subscribe("nd/putzini/state")
             self.client.subscribe("putzini/logs")
             
 

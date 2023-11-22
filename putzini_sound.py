@@ -66,7 +66,7 @@ class PutziniSound:
                             if trigger:
                                 asyncio.ensure_future(
                                     self.mqtt_client.publish(
-                                        'music/state', 
+                                        'nd/music/state', 
                                         json.dumps({'action': 'Trigger' if trigger else None})))
 
                         have_labels = False

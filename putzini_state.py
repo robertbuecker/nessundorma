@@ -60,5 +60,5 @@ class PutziniState:
         self.publish(qos=0)
         
     def publish(self, qos=0):
-        asyncio.ensure_future(self.mqtt_client.publish("putzini/state", json.dumps({'action': self.action, 
+        asyncio.ensure_future(self.mqtt_client.publish("nd/putzini/state", json.dumps({'action': self.action, 
             'posX': self.pos[0], 'posY': self.pos[1], 'alpha': self.alpha[0], 'message': self.message}), qos=qos))  
